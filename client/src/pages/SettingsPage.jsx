@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { api } from '../api.js';
 import PageLoading from './PageLoading.jsx';
+
+function formatHours(minutes) {
+  const hours = Math.round((Number(minutes || 0) / 60) * 10) / 10;
+  return `${hours}h`;
+}
 
 export default function SettingsPage() {
   const { user, updateProfile, loading } = useOutletContext();
@@ -8,10 +14,16 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [siteAnalytics, setSiteAnalytics] = useState(null);
 
   useEffect(() => {
     setName(user?.name || '');
   }, [user?.name]);
+
+  useEffect(() => {
+    if (!user?.isOwner) return;
+    api.siteAnalytics().then(setSiteAnalytics).catch(() => setSiteAnalytics(null));
+  }, [user?.isOwner]);
 
   if (loading) return <PageLoading label="Loading your account…" />;
 
@@ -61,6 +73,27 @@ export default function SettingsPage() {
         </section>
 
         <aside className="settings-side-stack">
+          {user?.isOwner && (
+            <section className="card creator-analytics-card">
+              <div className="creator-analytics-heading">
+                <div>
+                  <p className="eyebrow">Creator analytics</p>
+                  <h3>Early growth snapshot</h3>
+                </div>
+                <span className="analytics-live"><i /> Live</span>
+              </div>
+              {siteAnalytics ? (
+                <div className="analytics-metrics">
+                  <div><span>Visits</span><strong>{siteAnalytics.totalVisits}</strong></div>
+                  <div><span>Unique browsers</span><strong>{siteAnalytics.uniqueVisitors}</strong></div>
+                  <div><span>Accounts</span><strong>{siteAnalytics.totalUsers}</strong></div>
+                  <div><span>Focus logged</span><strong>{formatHours(siteAnalytics.totalFocusMinutes)}</strong></div>
+                </div>
+              ) : <p className="analytics-loading">Loading your private site metrics…</p>}
+              <p className="analytics-note">Counts are anonymous and local to this TaskFlow server. Add GA4 after deployment for full web analytics.</p>
+            </section>
+          )}
+
           <section className="card privacy-card">
             <div className="privacy-icon" aria-hidden="true">⌁</div>
             <p className="eyebrow">Privacy by design</p>

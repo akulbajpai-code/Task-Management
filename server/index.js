@@ -11,10 +11,13 @@ import {
   createUser,
   deleteTask,
   findUserByEmail,
+  getSiteAnalytics,
   getTask,
   getUserById,
+  isSiteOwner,
   listTasks,
   publicUser,
+  recordVisit,
   updateTask,
   updateUser,
 } from './store.js';
@@ -39,6 +42,10 @@ function validEmail(email) {
   return /^\S+@\S+\.\S+$/.test(String(email || '').trim());
 }
 
+function userPayload(user) {
+  return { ...publicUser(user), isOwner: isSiteOwner(user.id) };
+}
+
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -59,6 +66,12 @@ function requireAuth(req, res, next) {
 app.get('/api/health', async (_req, res) => {
   const ollama = await checkOllama();
   res.json({ ok: true, ollama });
+});
+
+// Privacy-conscious visit tracking. The client sends only a random browser ID,
+// never an email address, IP address, task, or plan.
+app.post('/api/analytics/visit', (req, res) => {
+  res.json(recordVisit(req.body?.visitorId));
 });
 
 // Authentication ---------------------------------------------------------
@@ -84,7 +97,7 @@ app.post('/api/auth/signup', async (req, res) => {
   const user = createUser({ name: cleanName, email: cleanEmail, passwordHash });
   if (!user) return res.status(409).json({ error: 'An account with that email already exists.' });
 
-  return res.status(201).json({ user, token: tokenFor(user) });
+  return res.status(201).json({ user: userPayload(user), token: tokenFor(user) });
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -95,11 +108,11 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'Incorrect email or password.' });
   }
 
-  return res.json({ user: publicUser(user), token: tokenFor(user) });
+  return res.json({ user: userPayload(user), token: tokenFor(user) });
 });
 
 app.get('/api/auth/me', requireAuth, (req, res) => {
-  res.json({ user: publicUser(req.user) });
+  res.json({ user: userPayload(req.user) });
 });
 
 app.patch('/api/auth/me', requireAuth, (req, res) => {
@@ -107,7 +120,14 @@ app.patch('/api/auth/me', requireAuth, (req, res) => {
   if (name.length < 2) return res.status(400).json({ error: 'Please enter a name with at least 2 characters.' });
   const user = updateUser(req.user.id, { name });
   if (!user) return res.status(400).json({ error: 'Could not update your profile.' });
-  return res.json({ user });
+  return res.json({ user: userPayload(user) });
+});
+
+// Creator-only aggregate analytics. Only the first/owner account can read it.
+app.get('/api/analytics/summary', requireAuth, (req, res) => {
+  const summary = getSiteAnalytics(req.user.id);
+  if (!summary) return res.status(403).json({ error: 'Creator analytics are only available to the site owner.' });
+  return res.json(summary);
 });
 
 // Tasks ------------------------------------------------------------------

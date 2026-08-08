@@ -30,7 +30,7 @@ export default function AuthPage({ mode }) {
       } else {
         await login({ email: form.email, password: form.password });
       }
-      navigate('/', { replace: true });
+      navigate('/app', { replace: true });
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {

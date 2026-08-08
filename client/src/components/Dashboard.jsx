@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import {
   ResponsiveContainer,
   BarChart,
@@ -24,6 +25,22 @@ function StatIcon({ type }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><circle cx="12" cy="12" r="8" /><path d="M12 4v2M20 12h-2M12 20v-2M4 12h2" /></svg>;
 }
 
+function StatCard({ tone, icon, value, unit, label, to, ariaLabel }) {
+  const content = (
+    <>
+      <div className="stat-icon"><StatIcon type={icon} /></div>
+      <div>
+        <div className="num">{value}{unit && <span>{unit}</span>}</div>
+        <div className="lbl">{label}</div>
+      </div>
+      {to && <span className="stat-arrow" aria-hidden="true">↗</span>}
+    </>
+  );
+
+  const className = `stat stat-${tone}${to ? ' stat-link' : ''}`;
+  return to ? <Link to={to} className={className} aria-label={ariaLabel}>{content}</Link> : <article className={className}>{content}</article>;
+}
+
 function EmptyChart({ kind }) {
   return (
     <div className="chart-empty">
@@ -36,7 +53,7 @@ function EmptyChart({ kind }) {
   );
 }
 
-export default function Dashboard({ data, showHeading = true, showStats = true, showCharts = true }) {
+export default function Dashboard({ data, showHeading = true, showStats = true, showCharts = true, statLinks = {} }) {
   const allCategories = data?.byCategory || [];
   const byCategory = allCategories
     .filter((d) => d.minutes > 0)
@@ -61,27 +78,31 @@ export default function Dashboard({ data, showHeading = true, showStats = true, 
 
       {showStats && (
         <div className="stats">
-          <article className="stat stat-purple">
-            <div className="stat-icon"><StatIcon type="clock" /></div>
-            <div>
-              <div className="num">{totalHours}<span>h</span></div>
-              <div className="lbl">Focus time logged</div>
-            </div>
-          </article>
-          <article className="stat stat-blue">
-            <div className="stat-icon"><StatIcon type="check" /></div>
-            <div>
-              <div className="num">{data?.taskCount || 0}</div>
-              <div className="lbl">Tasks in your flow</div>
-            </div>
-          </article>
-          <article className="stat stat-green">
-            <div className="stat-icon"><StatIcon type="target" /></div>
-            <div>
-              <div className="num">{allCategories.length}</div>
-              <div className="lbl">Active categories</div>
-            </div>
-          </article>
+          <StatCard
+            tone="purple"
+            icon="clock"
+            value={totalHours}
+            unit="h"
+            label="Focus time logged"
+            to={statLinks.focus}
+            ariaLabel="View focus insights"
+          />
+          <StatCard
+            tone="blue"
+            icon="check"
+            value={data?.taskCount || 0}
+            label="Tasks in your flow"
+            to={statLinks.tasks}
+            ariaLabel="Open your tasks"
+          />
+          <StatCard
+            tone="green"
+            icon="target"
+            value={allCategories.length}
+            label="Active categories"
+            to={statLinks.categories}
+            ariaLabel="View category insights"
+          />
         </div>
       )}
 

@@ -4,7 +4,7 @@ import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Overview', icon: 'overview', end: true },
+  { to: '/app', label: 'Overview', icon: 'overview', end: true },
   { to: '/tasks', label: 'Tasks', icon: 'tasks' },
   { to: '/focus', label: 'Focus', icon: 'focus' },
   { to: '/insights', label: 'Insights', icon: 'insights' },

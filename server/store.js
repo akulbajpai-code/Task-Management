@@ -6,11 +6,39 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
 
-const EMPTY = { users: [], tasks: [], nextId: 1, nextUserId: 1 };
+const EMPTY = {
+  users: [],
+  tasks: [],
+  nextId: 1,
+  nextUserId: 1,
+  analytics: { totalVisits: 0, visitorIds: {}, ownerUserId: null },
+};
 
 function asPositiveInteger(value, fallback) {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : fallback;
+}
+
+function asNonNegativeInteger(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : fallback;
+}
+
+function normalizeAnalytics(rawAnalytics, users) {
+  const rawVisitors = rawAnalytics?.visitorIds;
+  const visitorIds = rawVisitors && typeof rawVisitors === 'object' && !Array.isArray(rawVisitors)
+    ? rawVisitors
+    : {};
+  const requestedOwnerId = Number(rawAnalytics?.ownerUserId);
+  const ownerExists = users.some((user) => user.id === requestedOwnerId);
+
+  return {
+    totalVisits: asNonNegativeInteger(rawAnalytics?.totalVisits),
+    visitorIds,
+    // Existing TaskFlow files did not have analytics. Their first existing
+    // account becomes the private creator account automatically.
+    ownerUserId: ownerExists ? requestedOwnerId : (users[0]?.id || null),
+  };
 }
 
 function normalizeDB(data = {}) {
@@ -24,6 +52,7 @@ function normalizeDB(data = {}) {
     tasks,
     nextId: asPositiveInteger(data.nextId, maxTaskId + 1),
     nextUserId: asPositiveInteger(data.nextUserId, maxUserId + 1),
+    analytics: normalizeAnalytics(data.analytics, users),
   };
 }
 
@@ -58,8 +87,54 @@ export function findUserByEmail(email) {
 }
 
 export function getUserById(id) {
-  const user = loadDB().users.find((item) => item.id === Number(id)) || null;
-  return user;
+  return loadDB().users.find((item) => item.id === Number(id)) || null;
+}
+
+export function isSiteOwner(userId) {
+  const db = loadDB();
+  return db.analytics.ownerUserId === Number(userId);
+}
+
+/**
+ * Count an anonymous browser visit. The browser ID is random and contains no
+ * email, IP address, or task data. It lets the creator distinguish repeat
+ * visits from new browsers in this local MVP.
+ */
+export function recordVisit(visitorId) {
+  const id = String(visitorId || '').trim();
+  const db = loadDB();
+  const validId = /^[a-zA-Z0-9_-]{16,128}$/.test(id);
+
+  if (validId) {
+    db.analytics.totalVisits += 1;
+    if (!db.analytics.visitorIds[id]) {
+      db.analytics.visitorIds[id] = new Date().toISOString();
+    }
+    saveDB(db);
+  }
+
+  return {
+    totalVisits: db.analytics.totalVisits,
+    uniqueVisitors: Object.keys(db.analytics.visitorIds).length,
+    totalUsers: db.users.length,
+  };
+}
+
+/** Creator-only aggregate statistics — no other user's task details are exposed. */
+export function getSiteAnalytics(userId) {
+  const db = loadDB();
+  if (db.analytics.ownerUserId !== Number(userId)) return null;
+
+  const totalSessions = db.tasks.reduce((sum, task) => sum + (task.sessions?.length || 0), 0);
+  const totalFocusMinutes = db.tasks.reduce((sum, task) => sum + (task.totalMinutes || 0), 0);
+  return {
+    totalVisits: db.analytics.totalVisits,
+    uniqueVisitors: Object.keys(db.analytics.visitorIds).length,
+    totalUsers: db.users.length,
+    totalTasks: db.tasks.length,
+    totalSessions,
+    totalFocusMinutes,
+  };
 }
 
 /** Create a user. Existing unowned tasks are claimed by the first account. */
@@ -83,6 +158,7 @@ export function createUser({ name, email, passwordHash }) {
     db.tasks.forEach((task) => {
       if (!task.userId) task.userId = user.id;
     });
+    db.analytics.ownerUserId = user.id;
   }
 
   db.users.push(user);

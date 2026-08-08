@@ -43,10 +43,15 @@ export default function OverviewPage() {
         <Link to="/tasks" className="page-primary-link"><span aria-hidden="true">+</span> Add a task</Link>
       </div>
 
-      <Dashboard data={dashboard} showHeading={false} showCharts={false} />
+      <Dashboard
+        data={dashboard}
+        showHeading={false}
+        showCharts={false}
+        statLinks={{ focus: '/insights', tasks: '/tasks', categories: '/insights' }}
+      />
 
       <div className="overview-primary-grid">
-        <section className="card next-step-card">
+        <Link to="/tasks" className="card next-step-card home-card-link" aria-label="Open your task workspace">
           <div className="card-heading">
             <div className="next-step-title-block">
               <p className="eyebrow">Your next best action</p>
@@ -58,37 +63,35 @@ export default function OverviewPage() {
             <>
               <p className="next-action-copy">{nextAction(primaryTask)}</p>
               <div className="overview-card-footer">
-                <Link to="/tasks" className="quiet-link">Open task workspace <span aria-hidden="true">→</span></Link>
+                <span className="quiet-link">Open task workspace <span aria-hidden="true">→</span></span>
                 <span>◷ {primaryTask.totalMinutes || 0} minutes logged</span>
               </div>
             </>
           ) : (
             <>
               <p className="next-action-copy">Capture the one thing that feels most important today. When you are ready, TaskFlow can turn it into a clear place to begin.</p>
-              <div className="overview-card-footer">
-                <Link to="/tasks" className="quiet-link">Create your first task <span aria-hidden="true">→</span></Link>
-              </div>
+              <div className="overview-card-footer"><span className="quiet-link">Create your first task <span aria-hidden="true">→</span></span></div>
             </>
           )}
-        </section>
+        </Link>
 
-        <section className="card focus-cta-card">
+        <Link to="/focus" className="card focus-cta-card home-card-link" aria-label="Start a focus session">
           <p className="eyebrow">Make space to focus</p>
           <h3>Ready for a focused session?</h3>
           <p>Choose a task, set a realistic time block, and record one small win.</p>
-          <Link to="/focus" className="focus-cta-link">Start a focus session <span aria-hidden="true">→</span></Link>
-        </section>
+          <span className="focus-cta-link">Start a focus session <span aria-hidden="true">→</span></span>
+        </Link>
       </div>
 
       <section className="card overview-summary-bar" aria-label="Workspace summary">
-        <div className="overview-summary-item">
+        <Link to="/tasks" className="overview-summary-item summary-card-link">
           <span className="summary-icon purple" aria-hidden="true">✦</span>
           <div><strong>{plannedCount ? `${plannedCount} AI plan${plannedCount === 1 ? '' : 's'} ready` : 'No AI plans yet'}</strong><span>{plannedCount ? 'Your next steps are mapped out.' : 'Create a plan from the Tasks page.'}</span></div>
-        </div>
-        <div className="overview-summary-item">
+        </Link>
+        <Link to="/focus" className="overview-summary-item summary-card-link">
           <span className="summary-icon blue" aria-hidden="true">◷</span>
           <div><strong>{hoursLabel(totalMinutes)}</strong><span>Every session adds to your picture.</span></div>
-        </div>
+        </Link>
         <Link to="/insights" className="summary-insights-link">View insights <span aria-hidden="true">→</span></Link>
       </section>
     </div>

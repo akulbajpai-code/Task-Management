@@ -8,12 +8,15 @@ TaskFlow helps students and independent learners capture tasks, choose a realist
 
 ## ✨ What it does
 
+- **Public landing page** — a clear, mobile-friendly introduction explains TaskFlow’s value and gives visitors a simple route to sign up.
 - **Personal accounts** — create an email/password account; each user only sees their own tasks, sessions, plans, and insights.
 - **Focused pages** — separate Overview, Tasks, Focus, Insights, and Settings pages with a right-side navigation rail.
+- **Clickable overview** — every dashboard card has an intentional destination, so users can move from a metric or next action directly into the relevant workspace.
 - **Task workspace** — add a task, include useful context, and keep a clear task queue.
 - **AI task breakdown** — turn any task into a numbered plan with a highlighted “Start here” action.
 - **Focus sessions** — choose a task, select a realistic time block, add an intention, and log progress.
 - **Insights** — visual charts show time by task and category.
+- **Creator analytics** — the creator account can view private aggregate counts for browser sessions, unique browsers, accounts, tasks, and focus time.
 - **Local-first AI** — plans run through Ollama on the computer running TaskFlow; no paid AI API key is required.
 
 ---
@@ -25,10 +28,10 @@ TaskFlow helps students and independent learners capture tasks, choose a realist
 | Frontend | React 18, Vite, React Router, Recharts |
 | Backend | Node.js, Express |
 | Authentication | bcrypt password hashes + signed JWT sessions |
-| Development storage | JSON file with per-user task ownership |
+| Development storage | JSON file with per-user task ownership and anonymous session counts |
 | AI | Ollama (local, free, private) |
 
-> **MVP storage note:** JSON storage keeps setup very simple for a local demo. For a public deployment, move users and tasks to a hosted database (for example Supabase/Postgres) and set a strong `JWT_SECRET` environment variable.
+> **MVP storage note:** JSON storage keeps setup very simple for a local demo. For a public deployment or real multi-user beta, move users and tasks to a hosted SQL database (for example Supabase/Postgres) and set a strong `JWT_SECRET` environment variable. JSON files are not safe for many simultaneous writes and many hosts erase local files after deployment.
 
 ---
 
@@ -81,6 +84,9 @@ The Vite development server proxies `/api` requests to Express automatically.
 - Every task API route verifies the signed user and filters data by its owner.
 - If upgrading an older single-user TaskFlow data file, the **first account created** safely claims the existing tasks.
 - AI plans are sent to the configured local Ollama server, not to a paid cloud AI provider.
+- Visit counts use a random browser ID stored locally in the browser—no email, task content, or IP address is recorded by this MVP metric. The creator account alone can see the aggregate count in Settings.
+
+For public deployment, connect a dedicated consent-aware analytics platform such as Google Analytics 4 or Plausible for richer traffic sources, retention, and conversion reports.
 
 For deployment, set a long random secret before starting the server:
 
@@ -112,8 +118,8 @@ taskflow/
 │   └── src/
 │       ├── auth/              # auth context and session restoration
 │       ├── components/        # login, app shell, task UI, charts
-│       ├── pages/             # overview, tasks, focus, insights, settings
-│       ├── App.jsx            # protected client-side routes
+│       ├── pages/             # landing, overview, tasks, focus, insights, settings
+│       ├── App.jsx            # public landing, visit tracking, and protected routes
 │       └── api.js             # authenticated API client
 └── server/
     ├── index.js               # Express API + auth middleware

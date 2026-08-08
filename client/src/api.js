@@ -41,6 +41,8 @@ export const api = {
   setToken,
   clearToken,
   health: () => request('/health'),
+  trackVisit: (visitorId) => request('/analytics/visit', { method: 'POST', body: JSON.stringify({ visitorId }) }),
+  siteAnalytics: () => request('/analytics/summary'),
 
   signup: (data) => request('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
   login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
