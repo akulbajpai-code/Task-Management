@@ -9,7 +9,7 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [dashboard, setDashboard] = useState(null);
-  const [ollama, setOllama] = useState(null); // { ok } | null
+  const [ollama, setOllama] = useState(null);
 
   const refresh = useCallback(async () => {
     const [t, d] = await Promise.all([api.listTasks(), api.dashboard()]);
@@ -52,47 +52,43 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="topbar">
+      <header className="topbar">
         <div className="brand">
-          <div className="logo">⏱</div>
+          <div className="logo" aria-hidden="true">⏱</div>
           <div>
-            <h1>TaskFlow</h1>
-            <p>Track your time · Let AI show you where to start</p>
+            <div className="brand-name">TaskFlow</div>
+            <p>Turn big tasks into a clear next step.</p>
           </div>
         </div>
-        <div className="ollama-status">
-          <span
-            className={`dot ${ollama === null ? '' : ollama.ok ? 'on' : 'off'}`}
-          />
+        <div className="ollama-status" title="TaskFlow uses your local Ollama model">
+          <span className={`dot ${ollama === null ? '' : ollama.ok ? 'on' : 'off'}`} />
           {ollama === null
-            ? 'Checking Ollama…'
+            ? 'Checking AI planner…'
             : ollama.ok
-              ? 'AI ready (local Ollama)'
+              ? 'AI planner ready'
               : 'Ollama not detected'}
         </div>
-      </div>
+      </header>
 
       <Dashboard data={dashboard} />
 
-      <div className="layout">
-        <div>
+      <main className="workspace">
+        <aside className="sidebar">
           <TaskForm onCreate={createTask} />
-          <div style={{ marginTop: 16 }}>
-            <TaskList
-              tasks={tasks}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              onDelete={deleteTask}
-            />
-          </div>
-        </div>
+          <TaskList
+            tasks={tasks}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onDelete={deleteTask}
+          />
+        </aside>
         <TaskDetail
           task={selected}
           onPlan={planTask}
           onLogTime={logTime}
           onDelete={deleteTask}
         />
-      </div>
+      </main>
     </div>
   );
 }

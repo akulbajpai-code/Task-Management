@@ -12,77 +12,145 @@ import {
   Legend,
 } from 'recharts';
 
-const COLORS = ['#6d7cff', '#9a5cff', '#34d399', '#fbbf24', '#f87171', '#22d3ee', '#a78bfa'];
+const COLORS = ['#8b7cff', '#47c5ff', '#42d6a4', '#f7be55', '#fb7b92', '#5ed7d2', '#b78cff'];
+
+function StatIcon({ type }) {
+  if (type === 'clock') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 7v5l3.4 2" /></svg>;
+  }
+  if (type === 'check') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.1 4L19 6.5" /><path d="M21 12a9 9 0 1 1-4.2-7.6" /></svg>;
+  }
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><circle cx="12" cy="12" r="8" /><path d="M12 4v2M20 12h-2M12 20v-2M4 12h2" /></svg>;
+}
+
+function EmptyChart({ kind }) {
+  return (
+    <div className="chart-empty">
+      <div className={`chart-empty-icon ${kind}`} aria-hidden="true">
+        {kind === 'task' ? '↗' : '◌'}
+      </div>
+      <strong>No focus time yet</strong>
+      <span>Log a session below and your {kind === 'task' ? 'task' : 'category'} insights will appear here.</span>
+    </div>
+  );
+}
 
 export default function Dashboard({ data }) {
-  const byCategory = (data?.byCategory || []).map((d) => ({
-    ...d,
-    hours: Math.round((d.minutes / 60) * 10) / 10,
-  }));
-  const byTask = (data?.byTask || []).map((d) => ({
-    ...d,
-    hours: Math.round((d.minutes / 60) * 10) / 10,
-  }));
-  const totalHours = Math.round((data?.totalMinutes || 0) / 60 * 10) / 10;
+  const allCategories = data?.byCategory || [];
+  const byCategory = allCategories
+    .filter((d) => d.minutes > 0)
+    .map((d) => ({ ...d, hours: Math.round((d.minutes / 60) * 10) / 10 }));
+  const byTask = (data?.byTask || [])
+    .filter((d) => d.minutes > 0)
+    .map((d) => ({ ...d, hours: Math.round((d.minutes / 60) * 10) / 10 }));
+  const totalHours = Math.round(((data?.totalMinutes || 0) / 60) * 10) / 10;
 
   return (
-    <div>
+    <section className="dashboard" aria-label="Focus overview">
+      <div className="overview-heading">
+        <div>
+          <p className="eyebrow">Focus overview</p>
+          <h2>Make today count.</h2>
+          <p className="overview-copy">Small focused sessions add up to meaningful progress.</p>
+        </div>
+        <span className="overview-badge">Local-first workspace</span>
+      </div>
+
       <div className="stats">
-        <div className="stat"><div className="num">{totalHours}</div><div className="lbl">Hours logged</div></div>
-        <div className="stat"><div className="num">{data?.taskCount || 0}</div><div className="lbl">Tasks</div></div>
-        <div className="stat"><div className="num">{byCategory.length}</div><div className="lbl">Categories</div></div>
+        <article className="stat stat-purple">
+          <div className="stat-icon"><StatIcon type="clock" /></div>
+          <div>
+            <div className="num">{totalHours}<span>h</span></div>
+            <div className="lbl">Focus time logged</div>
+          </div>
+        </article>
+        <article className="stat stat-blue">
+          <div className="stat-icon"><StatIcon type="check" /></div>
+          <div>
+            <div className="num">{data?.taskCount || 0}</div>
+            <div className="lbl">Tasks in your flow</div>
+          </div>
+        </article>
+        <article className="stat stat-green">
+          <div className="stat-icon"><StatIcon type="target" /></div>
+          <div>
+            <div className="num">{allCategories.length}</div>
+            <div className="lbl">Active categories</div>
+          </div>
+        </article>
       </div>
 
       <div className="charts">
-        <div className="card">
-          <h2>Time by Task</h2>
+        <article className="card chart-card">
+          <div className="card-heading">
+            <div>
+              <p className="eyebrow">Activity</p>
+              <h3>Time by task</h3>
+            </div>
+            <span className="chart-unit">Hours</span>
+          </div>
           {byTask.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={byTask} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <CartesianGrid stroke="#2c3350" strokeDasharray="3 3" />
-                <XAxis type="number" stroke="#9aa3bf" />
-                <YAxis type="category" dataKey="name" width={120} stroke="#9aa3bf" tick={{ fontSize: 11 }} />
+            <ResponsiveContainer width="100%" height={218}>
+              <BarChart data={byTask} layout="vertical" margin={{ top: 6, left: 0, right: 18, bottom: 0 }}>
+                <CartesianGrid stroke="#2a3350" strokeDasharray="3 5" horizontal={false} />
+                <XAxis type="number" stroke="#72809e" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={112} stroke="#aeb9d5" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
                 <Tooltip
-                  contentStyle={{ background: '#1a1f33', border: '1px solid #2c3350', borderRadius: 10 }}
-                  labelStyle={{ color: '#e7ebf6' }}
+                  cursor={{ fill: 'rgba(139, 124, 255, .08)' }}
+                  contentStyle={{ background: '#171d31', border: '1px solid #34405f', borderRadius: 12, boxShadow: '0 12px 30px rgba(0,0,0,.24)' }}
+                  labelStyle={{ color: '#eef1ff', fontWeight: 700 }}
+                  itemStyle={{ color: '#cdd5ef' }}
+                  formatter={(value) => [`${value} h`, 'Focus time']}
                 />
-                <Bar dataKey="hours" fill="#6d7cff" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="hours" fill="#8b7cff" radius={[0, 7, 7, 0]} maxBarSize={26} />
               </BarChart>
             </ResponsiveContainer>
-          ) : <p className="empty">Log some time to see the breakdown.</p>}
-        </div>
+          ) : <EmptyChart kind="task" />}
+        </article>
 
-        <div className="card">
-          <h2>Time by Category</h2>
+        <article className="card chart-card">
+          <div className="card-heading">
+            <div>
+              <p className="eyebrow">Balance</p>
+              <h3>Time by category</h3>
+            </div>
+            <span className="chart-unit">Hours</span>
+          </div>
           {byCategory.length ? (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={218}>
               <PieChart>
                 <Pie
                   data={byCategory}
                   dataKey="hours"
                   nameKey="name"
-                  outerRadius={90}
-                  paddingAngle={2}
-                  labelLine={false}
-                  label={(entry) =>
-                    `${entry.name} ${Math.round(entry.hours * 10) / 10}h`
-                  }
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={47}
+                  outerRadius={76}
+                  paddingAngle={4}
+                  stroke="none"
                 >
                   {byCategory.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value) => [`${value} h`, 'Time']}
-                  contentStyle={{ background: '#1a1f33', border: '1px solid #2c3350', borderRadius: 10 }}
-                  itemStyle={{ color: '#e7ebf6' }}
+                  formatter={(value) => [`${value} h`, 'Focus time']}
+                  contentStyle={{ background: '#171d31', border: '1px solid #34405f', borderRadius: 12, boxShadow: '0 12px 30px rgba(0,0,0,.24)' }}
+                  itemStyle={{ color: '#cdd5ef' }}
                 />
-                <Legend wrapperStyle={{ color: '#e7ebf6', fontSize: 12 }} />
+                <Legend
+                  verticalAlign="bottom"
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ color: '#c8d0e8', fontSize: 12, paddingTop: 4 }}
+                />
               </PieChart>
             </ResponsiveContainer>
-          ) : <p className="empty">Log some time to see the breakdown.</p>}
-        </div>
+          ) : <EmptyChart kind="category" />}
+        </article>
       </div>
-    </div>
+    </section>
   );
 }

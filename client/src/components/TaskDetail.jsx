@@ -1,4 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+function unpackPlan(plan) {
+  const steps = [];
+  const notes = [];
+  let currentStep = null;
+
+  for (const rawLine of String(plan || '').split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const match = line.match(/^(?:step\s*)?(\d+)\s*[.)]\s*(.+)$/i);
+    if (match) {
+      currentStep = { number: Number(match[1]), text: match[2].trim() };
+      steps.push(currentStep);
+      continue;
+    }
+
+    if (/^time estimate\s*:/i.test(line) || /^first action(?:\s*\([^)]*\))?\s*:/i.test(line)) {
+      notes.push(line);
+      currentStep = null;
+      continue;
+    }
+
+    if (currentStep) {
+      currentStep.text += ` ${line}`;
+    } else {
+      notes.push(line);
+    }
+  }
+
+  if (!steps.length && plan) {
+    steps.push({ number: 1, text: String(plan).trim() });
+  }
+
+  const firstAction = notes.find((note) => /^first action(?:\s*\([^)]*\))?\s*:/i.test(note));
+  const timeEstimate = notes.find((note) => /^time estimate\s*:/i.test(note));
+  const otherNotes = notes.filter((note) => note !== firstAction && note !== timeEstimate);
+
+  return { steps, firstAction, timeEstimate, otherNotes };
+}
 
 export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
   const [minutes, setMinutes] = useState('');
@@ -6,12 +46,22 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
 
+  useEffect(() => {
+    setMinutes('');
+    setNote('');
+    setError('');
+  }, [task?.id]);
+
+  const planData = useMemo(() => unpackPlan(task?.plan), [task?.plan]);
+
   if (!task) {
     return (
-      <div className="card">
-        <h2>Task Details</h2>
-        <p className="empty">Select a task to see its AI breakdown and log time.</p>
-      </div>
+      <section className="card detail-card detail-empty">
+        <div className="empty-detail-icon" aria-hidden="true">✦</div>
+        <p className="eyebrow">Task workspace</p>
+        <h2>Choose a task to begin</h2>
+        <p>Select one from your queue to generate an AI breakdown and log focused time.</p>
+      </section>
     );
   }
 
@@ -41,45 +91,107 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
     }
   };
 
-  return (
-    <div className="card">
-      <h2>Task Details</h2>
-      <p className="detail-title">{task.title}</p>
-      <p className="detail-desc">
-        {task.category}
-        {task.description ? ` · ${task.description}` : ''} · ⏱ {task.totalMinutes || 0} min logged
-      </p>
+  const firstActionText = planData.firstAction?.replace(/^first action(?:\s*\([^)]*\))?\s*:\s*/i, '');
+  const estimateText = planData.timeEstimate?.replace(/^time estimate\s*:\s*/i, '');
 
-      <div className="detail-actions">
-        <button className="btn" onClick={runPlan} disabled={planning}>
-          {planning ? 'Thinking…' : task.plan ? '↻ Re-plan' : '✦ Plan it with AI'}
+  return (
+    <section className="card detail-card">
+      <div className="detail-header">
+        <div>
+          <p className="eyebrow">Task workspace</p>
+          <h2>{task.title}</h2>
+          <div className="detail-meta">
+            <span className="category-tag">{task.category}</span>
+            <span className="detail-time"><span aria-hidden="true">◷</span> {task.totalMinutes || 0} minutes logged</span>
+          </div>
+        </div>
+        <button className="icon-button" onClick={() => onDelete(task.id)} title="Delete task" aria-label="Delete task">×</button>
+      </div>
+
+      {task.description && <p className="task-description">{task.description}</p>}
+
+      <div className="planner-toolbar">
+        <div>
+          <p className="eyebrow">Your AI plan</p>
+          <h3>{task.plan ? 'A clear path forward' : 'Break the task into steps'}</h3>
+        </div>
+        <button className="btn plan-button" onClick={runPlan} disabled={planning}>
+          <span aria-hidden="true">✦</span> {planning ? 'Building plan…' : task.plan ? 'Refresh plan' : 'Plan with AI'}
         </button>
-        <button className="btn ghost" onClick={() => onDelete(task.id)}>Delete</button>
       </div>
 
       {error && <p className="error">{error}</p>}
-      {!error && <p className="hint">The plan runs on your free local Ollama model — private and no API cost.</p>}
 
-      {task.plan && (
-        <div className="plan">{task.plan}</div>
+      {task.plan ? (
+        <div className="plan-panel">
+          {firstActionText && (
+            <div className="first-action">
+              <div className="first-action-icon" aria-hidden="true">→</div>
+              <div>
+                <span>Start here</span>
+                <strong>{firstActionText}</strong>
+              </div>
+            </div>
+          )}
+
+          <div className="plan-panel-heading">
+            <span>Step-by-step plan</span>
+            <span>{planData.steps.length} {planData.steps.length === 1 ? 'step' : 'steps'}</span>
+          </div>
+          <ol className="plan-steps">
+            {planData.steps.map((step, index) => (
+              <li key={`${step.number}-${index}`}>
+                <span className="step-number">{step.number}</span>
+                <p>{step.text}</p>
+              </li>
+            ))}
+          </ol>
+          {(estimateText || planData.otherNotes.length > 0) && (
+            <div className="plan-notes">
+              {estimateText && <p><strong>Estimated time:</strong> {estimateText}</p>}
+              {planData.otherNotes.map((item, index) => <p key={index}>{item}</p>)}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="plan-placeholder">
+          <div className="plan-placeholder-icon" aria-hidden="true">✦</div>
+          <div>
+            <strong>Feeling stuck? Start smaller.</strong>
+            <p>Use your private local AI to turn this task into concrete, realistic next actions.</p>
+          </div>
+        </div>
       )}
 
-      <form onSubmit={logTime} className="log-time">
+      <div className="log-panel">
+        <div className="log-heading">
+          <div>
+            <p className="eyebrow">Focus session</p>
+            <h3>Log your progress</h3>
+          </div>
+          <span>Every minute counts</span>
+        </div>
+        <form onSubmit={logTime} className="log-time">
+          <input
+            aria-label="Minutes worked"
+            type="number"
+            min="1"
+            placeholder="Minutes worked"
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+          />
+          <button className="btn" type="submit" disabled={!minutes}>Log time</button>
+        </form>
         <input
-          type="number"
-          min="1"
-          placeholder="Minutes worked"
-          value={minutes}
-          onChange={(e) => setMinutes(e.target.value)}
+          className="session-note"
+          aria-label="Session note"
+          placeholder="What did you make progress on? (optional)"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
         />
-        <button className="btn small" type="submit" disabled={!minutes}>Log</button>
-      </form>
-      <input
-        style={{ marginTop: '8px' }}
-        placeholder="Note (optional)"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-      />
-    </div>
+      </div>
+
+      {!error && <p className="privacy-hint">Your plan is generated privately with Ollama on this computer. No API key or paid service needed.</p>}
+    </section>
   );
 }

@@ -21,40 +21,53 @@ export default function TaskForm({ onCreate }) {
   };
 
   return (
-    <div className="card">
-      <h2>New Task</h2>
-      <form onSubmit={submit}>
-        <label htmlFor="title">Task title</label>
+    <section className="card create-task-card">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Task inbox</p>
+          <h2>Create a task</h2>
+        </div>
+        <span className="heading-icon" aria-hidden="true">+</span>
+      </div>
+      <p className="section-copy">Capture what matters, then turn it into a manageable next step.</p>
+
+      <form onSubmit={submit} className="task-form">
+        <label htmlFor="title">What do you need to do?</label>
         <input
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Finish AP Bio research paper"
+          autoComplete="off"
         />
 
-        <label htmlFor="category">Category</label>
-        <select
-          id="category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
-          {['General', 'School', 'Work', 'Project', 'Health', 'Personal'].map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        <div className="form-row">
+          <div>
+            <label htmlFor="category">Category</label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {['General', 'School', 'Work', 'Project', 'Health', 'Personal'].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-        <label htmlFor="description">Details (optional)</label>
+        <label htmlFor="description">Helpful context <span>(optional)</span></label>
         <textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Any extra context the AI planner can use..."
+          placeholder="Deadline, requirements, or anything the planner should know..."
         />
 
         <button className="btn block" type="submit" disabled={saving || !title.trim()}>
-          {saving ? 'Adding…' : '+ Add Task'}
+          <span aria-hidden="true">+</span> {saving ? 'Adding task…' : 'Add to task list'}
         </button>
       </form>
-    </div>
+    </section>
   );
 }
