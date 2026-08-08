@@ -6,6 +6,11 @@ function firstName(name) {
   return String(name || 'there').trim().split(/\s+/)[0] || 'there';
 }
 
+function displayTitle(title) {
+  const text = String(title || '').trim();
+  return text ? `${text[0].toUpperCase()}${text.slice(1)}` : 'Untitled task';
+}
+
 function nextAction(task) {
   if (!task?.plan) return 'Add a little context, then let AI turn this into a doable first step.';
   const explicit = task.plan.match(/^First action(?:\s*\([^)]*\))?\s*:\s*(.+)$/im);
@@ -14,12 +19,18 @@ function nextAction(task) {
   return firstStep ? firstStep[1] : 'Open your plan and choose the smallest next action.';
 }
 
+function hoursLabel(minutes) {
+  const hours = Math.round((Number(minutes || 0) / 60) * 10) / 10;
+  return hours ? `${hours} ${hours === 1 ? 'hour' : 'hours'} focused` : 'No focus time logged yet';
+}
+
 export default function OverviewPage() {
   const { tasks, dashboard, loading, user } = useOutletContext();
   if (loading) return <PageLoading />;
 
   const primaryTask = tasks.find((task) => task.plan) || tasks[0];
   const plannedCount = tasks.filter((task) => task.plan).length;
+  const totalMinutes = dashboard?.totalMinutes || 0;
 
   return (
     <div className="page overview-page">
@@ -27,45 +38,59 @@ export default function OverviewPage() {
         <div>
           <p className="eyebrow">Your personal workspace</p>
           <h1>Good to see you, {firstName(user?.name)}.</h1>
-          <p>Choose one meaningful next step, give it your attention, and let the momentum build.</p>
+          <p>Pick one meaningful next step and give it your attention. Small focused sessions create real momentum.</p>
         </div>
-        <Link to="/tasks" className="page-primary-link"><span aria-hidden="true">+</span> New task</Link>
+        <Link to="/tasks" className="page-primary-link"><span aria-hidden="true">+</span> Add a task</Link>
       </div>
 
       <Dashboard data={dashboard} showHeading={false} showCharts={false} />
 
-      <div className="overview-panels">
+      <div className="overview-primary-grid">
         <section className="card next-step-card">
           <div className="card-heading">
-            <div>
+            <div className="next-step-title-block">
               <p className="eyebrow">Your next best action</p>
-              <h3>{primaryTask ? primaryTask.title : 'Start with one task'}</h3>
+              <h3 title={primaryTask?.title}>{primaryTask ? displayTitle(primaryTask.title) : 'Start with one task'}</h3>
             </div>
             {primaryTask && <span className="category-tag">{primaryTask.category}</span>}
           </div>
           {primaryTask ? (
             <>
               <p className="next-action-copy">{nextAction(primaryTask)}</p>
-              <Link to="/tasks" className="quiet-link">Open task workspace <span aria-hidden="true">→</span></Link>
+              <div className="overview-card-footer">
+                <Link to="/tasks" className="quiet-link">Open task workspace <span aria-hidden="true">→</span></Link>
+                <span>◷ {primaryTask.totalMinutes || 0} minutes logged</span>
+              </div>
             </>
           ) : (
             <>
-              <p className="next-action-copy">Capture the one thing that feels most important today. You can create a step-by-step plan whenever you are ready.</p>
-              <Link to="/tasks" className="quiet-link">Create your first task <span aria-hidden="true">→</span></Link>
+              <p className="next-action-copy">Capture the one thing that feels most important today. When you are ready, TaskFlow can turn it into a clear place to begin.</p>
+              <div className="overview-card-footer">
+                <Link to="/tasks" className="quiet-link">Create your first task <span aria-hidden="true">→</span></Link>
+              </div>
             </>
           )}
         </section>
 
-        <section className="card momentum-card">
-          <p className="eyebrow">Your momentum</p>
-          <h3>{plannedCount ? `${plannedCount} task${plannedCount === 1 ? '' : 's'} mapped out` : 'Your plan starts here'}</h3>
-          <p>{plannedCount ? 'Your AI plans are ready whenever you need a little direction.' : 'Break down a task to replace uncertainty with a clear place to begin.'}</p>
-          <div className="momentum-actions">
-            <Link to="/focus">Log focus time</Link>
-            <Link to="/insights">View insights</Link>
-          </div>
+        <section className="card focus-cta-card">
+          <p className="eyebrow">Make space to focus</p>
+          <h3>Ready for a focused session?</h3>
+          <p>Choose a task, set a realistic time block, and record one small win.</p>
+          <Link to="/focus" className="focus-cta-link">Start a focus session <span aria-hidden="true">→</span></Link>
         </section>
       </div>
+
+      <section className="card overview-summary-bar" aria-label="Workspace summary">
+        <div className="overview-summary-item">
+          <span className="summary-icon purple" aria-hidden="true">✦</span>
+          <div><strong>{plannedCount ? `${plannedCount} AI plan${plannedCount === 1 ? '' : 's'} ready` : 'No AI plans yet'}</strong><span>{plannedCount ? 'Your next steps are mapped out.' : 'Create a plan from the Tasks page.'}</span></div>
+        </div>
+        <div className="overview-summary-item">
+          <span className="summary-icon blue" aria-hidden="true">◷</span>
+          <div><strong>{hoursLabel(totalMinutes)}</strong><span>Every session adds to your picture.</span></div>
+        </div>
+        <Link to="/insights" className="summary-insights-link">View insights <span aria-hidden="true">→</span></Link>
+      </section>
     </div>
   );
 }
