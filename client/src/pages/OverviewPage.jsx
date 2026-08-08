@@ -33,64 +33,61 @@ export default function OverviewPage() {
   const totalMinutes = dashboard?.totalMinutes || 0;
 
   return (
-    <div className="page overview-page">
+    <div className="page overview-page editorial-overview">
       <div className="page-heading page-heading-with-action">
         <div>
           <p className="eyebrow">Your personal workspace</p>
-          <h1>Good to see you, {firstName(user?.name)}.</h1>
-          <p>Pick one meaningful next step and give it your attention. Small focused sessions create real momentum.</p>
+          <h1>Good to see you,{' '}{firstName(user?.name)}.</h1>
+          <p>Choose one meaningful next step, make space for it, and let the momentum build.</p>
         </div>
         <Link to="/tasks" className="page-primary-link"><span aria-hidden="true">+</span> Add a task</Link>
       </div>
 
-      <Dashboard data={dashboard} showHeading={false} showCharts={false} />
+      <Dashboard data={dashboard} showHeading={false} showCharts={false} minimalStats />
 
-      <div className="overview-primary-grid">
-        <section className="card next-step-card">
-          <div className="card-heading">
-            <div className="next-step-title-block">
-              <p className="eyebrow">Your next best action</p>
-              <h3 title={primaryTask?.title}>{primaryTask ? displayTitle(primaryTask.title) : 'Start with one task'}</h3>
-            </div>
+      <div className="editorial-dashboard-grid">
+        <section className="next-action-editorial">
+          <div className="editorial-section-heading">
+            <p className="eyebrow">Your next best action</p>
             {primaryTask && <span className="category-tag">{primaryTask.category}</span>}
           </div>
           {primaryTask ? (
             <>
-              <p className="next-action-copy">{nextAction(primaryTask)}</p>
-              <div className="overview-card-footer">
-                <Link to="/tasks" className="quiet-link">Open task workspace <span aria-hidden="true">→</span></Link>
-                <span>◷ {primaryTask.totalMinutes || 0} minutes logged</span>
+              <h2 title={primaryTask.title}>{displayTitle(primaryTask.title)}</h2>
+              <p className="editorial-next-copy">{nextAction(primaryTask)}</p>
+              <div className="editorial-action-footer">
+                <div className="editorial-meta"><span>◷ {primaryTask.totalMinutes || 0} minutes logged</span><span>✦ {primaryTask.plan ? 'AI plan ready' : 'No plan yet'}</span></div>
+                <Link to="/tasks" className="editorial-link">Open task workspace <span aria-hidden="true">→</span></Link>
               </div>
             </>
           ) : (
             <>
-              <p className="next-action-copy">Capture the one thing that feels most important today. When you are ready, TaskFlow can turn it into a clear place to begin.</p>
-              <div className="overview-card-footer">
-                <Link to="/tasks" className="quiet-link">Create your first task <span aria-hidden="true">→</span></Link>
-              </div>
+              <h2>Start with one task.</h2>
+              <p className="editorial-next-copy">Capture the one thing that matters most today. When you are ready, TaskFlow can turn it into a clear place to begin.</p>
+              <Link to="/tasks" className="editorial-link">Create your first task <span aria-hidden="true">→</span></Link>
             </>
           )}
         </section>
 
-        <section className="card focus-cta-card">
-          <p className="eyebrow">Make space to focus</p>
-          <h3>Ready for a focused session?</h3>
-          <p>Choose a task, set a realistic time block, and record one small win.</p>
-          <Link to="/focus" className="focus-cta-link">Start a focus session <span aria-hidden="true">→</span></Link>
+        <section className="focus-editorial">
+          <p className="eyebrow">Focus window</p>
+          <h2>Make the next 25 minutes count.</h2>
+          <p>Choose a task, set a small time block, and come back with one thing moved forward.</p>
+          <Link to="/focus" className="focus-editorial-link">Start a focus session <span aria-hidden="true">→</span></Link>
         </section>
       </div>
 
-      <section className="card overview-summary-bar" aria-label="Workspace summary">
-        <div className="overview-summary-item">
-          <span className="summary-icon purple" aria-hidden="true">✦</span>
-          <div><strong>{plannedCount ? `${plannedCount} AI plan${plannedCount === 1 ? '' : 's'} ready` : 'No AI plans yet'}</strong><span>{plannedCount ? 'Your next steps are mapped out.' : 'Create a plan from the Tasks page.'}</span></div>
+      <div className="overview-insight-row" aria-label="Workspace summary">
+        <div className="insight-row-item">
+          <span>Plans</span>
+          <strong>{plannedCount ? `${plannedCount} AI plan${plannedCount === 1 ? '' : 's'} ready` : 'No AI plans yet'}</strong>
         </div>
-        <div className="overview-summary-item">
-          <span className="summary-icon blue" aria-hidden="true">◷</span>
-          <div><strong>{hoursLabel(totalMinutes)}</strong><span>Every session adds to your picture.</span></div>
+        <div className="insight-row-item">
+          <span>Focus history</span>
+          <strong>{hoursLabel(totalMinutes)}</strong>
         </div>
-        <Link to="/insights" className="summary-insights-link">View insights <span aria-hidden="true">→</span></Link>
-      </section>
+        <Link to="/insights" className="insight-row-link">View insights <span aria-hidden="true">→</span></Link>
+      </div>
     </div>
   );
 }

@@ -36,7 +36,7 @@ function EmptyChart({ kind }) {
   );
 }
 
-export default function Dashboard({ data, showHeading = true, showStats = true, showCharts = true }) {
+export default function Dashboard({ data, showHeading = true, showStats = true, showCharts = true, minimalStats = false }) {
   const allCategories = data?.byCategory || [];
   const byCategory = allCategories
     .filter((d) => d.minutes > 0)
@@ -60,7 +60,7 @@ export default function Dashboard({ data, showHeading = true, showStats = true, 
       )}
 
       {showStats && (
-        <div className="stats">
+        <div className={`stats ${minimalStats ? 'stats-minimal' : ''}`}>
           <article className="stat stat-purple">
             <div className="stat-icon"><StatIcon type="clock" /></div>
             <div>
