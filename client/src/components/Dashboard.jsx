@@ -55,15 +55,27 @@ export default function Dashboard({ data }) {
         <div className="card">
           <h2>Time by Category</h2>
           {byCategory.length ? (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={byCategory} dataKey="hours" nameKey="name" outerRadius={90} label>
+                <Pie
+                  data={byCategory}
+                  dataKey="hours"
+                  nameKey="name"
+                  outerRadius={90}
+                  paddingAngle={2}
+                  labelLine={false}
+                  label={(entry) =>
+                    `${entry.name} ${Math.round(entry.hours * 10) / 10}h`
+                  }
+                >
                   {byCategory.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip
+                  formatter={(value) => [`${value} h`, 'Time']}
                   contentStyle={{ background: '#1a1f33', border: '1px solid #2c3350', borderRadius: 10 }}
+                  itemStyle={{ color: '#e7ebf6' }}
                 />
                 <Legend wrapperStyle={{ color: '#e7ebf6', fontSize: 12 }} />
               </PieChart>
