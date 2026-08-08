@@ -36,7 +36,7 @@ function EmptyChart({ kind }) {
   );
 }
 
-export default function Dashboard({ data }) {
+export default function Dashboard({ data, showHeading = true, showStats = true, showCharts = true }) {
   const allCategories = data?.byCategory || [];
   const byCategory = allCategories
     .filter((d) => d.minutes > 0)
@@ -47,41 +47,45 @@ export default function Dashboard({ data }) {
   const totalHours = Math.round(((data?.totalMinutes || 0) / 60) * 10) / 10;
 
   return (
-    <section className="dashboard" aria-label="Focus overview">
-      <div className="overview-heading">
-        <div>
-          <p className="eyebrow">Focus overview</p>
-          <h2>Make today count.</h2>
-          <p className="overview-copy">Small focused sessions add up to meaningful progress.</p>
+    <section className={`dashboard ${!showHeading ? 'dashboard-no-heading' : ''}`} aria-label="Focus overview">
+      {showHeading && (
+        <div className="overview-heading">
+          <div>
+            <p className="eyebrow">Focus overview</p>
+            <h2>Make today count.</h2>
+            <p className="overview-copy">Small focused sessions add up to meaningful progress.</p>
+          </div>
+          <span className="overview-badge">Local-first workspace</span>
         </div>
-        <span className="overview-badge">Local-first workspace</span>
-      </div>
+      )}
 
-      <div className="stats">
-        <article className="stat stat-purple">
-          <div className="stat-icon"><StatIcon type="clock" /></div>
-          <div>
-            <div className="num">{totalHours}<span>h</span></div>
-            <div className="lbl">Focus time logged</div>
-          </div>
-        </article>
-        <article className="stat stat-blue">
-          <div className="stat-icon"><StatIcon type="check" /></div>
-          <div>
-            <div className="num">{data?.taskCount || 0}</div>
-            <div className="lbl">Tasks in your flow</div>
-          </div>
-        </article>
-        <article className="stat stat-green">
-          <div className="stat-icon"><StatIcon type="target" /></div>
-          <div>
-            <div className="num">{allCategories.length}</div>
-            <div className="lbl">Active categories</div>
-          </div>
-        </article>
-      </div>
+      {showStats && (
+        <div className="stats">
+          <article className="stat stat-purple">
+            <div className="stat-icon"><StatIcon type="clock" /></div>
+            <div>
+              <div className="num">{totalHours}<span>h</span></div>
+              <div className="lbl">Focus time logged</div>
+            </div>
+          </article>
+          <article className="stat stat-blue">
+            <div className="stat-icon"><StatIcon type="check" /></div>
+            <div>
+              <div className="num">{data?.taskCount || 0}</div>
+              <div className="lbl">Tasks in your flow</div>
+            </div>
+          </article>
+          <article className="stat stat-green">
+            <div className="stat-icon"><StatIcon type="target" /></div>
+            <div>
+              <div className="num">{allCategories.length}</div>
+              <div className="lbl">Active categories</div>
+            </div>
+          </article>
+        </div>
+      )}
 
-      <div className="charts">
+      {showCharts && <div className="charts">
         <article className="card chart-card">
           <div className="card-heading">
             <div>
@@ -150,7 +154,7 @@ export default function Dashboard({ data }) {
             </ResponsiveContainer>
           ) : <EmptyChart kind="category" />}
         </article>
-      </div>
+      </div>}
     </section>
   );
 }

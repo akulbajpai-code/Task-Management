@@ -1,94 +1,55 @@
-import { useEffect, useState, useCallback } from 'react';
-import { api } from './api.js';
-import TaskForm from './components/TaskForm.jsx';
-import TaskList from './components/TaskList.jsx';
-import TaskDetail from './components/TaskDetail.jsx';
-import Dashboard from './components/Dashboard.jsx';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { AuthProvider, useAuth } from './auth/AuthContext.jsx';
+import AuthPage from './components/AuthPage.jsx';
+import AppShell from './components/AppShell.jsx';
+import OverviewPage from './pages/OverviewPage.jsx';
+import TasksPage from './pages/TasksPage.jsx';
+import FocusPage from './pages/FocusPage.jsx';
+import InsightsPage from './pages/InsightsPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
+
+function LoadingScreen() {
+  return (
+    <div className="route-loading">
+      <div className="route-loading-mark">⏱</div>
+      <p>Opening TaskFlow…</p>
+    </div>
+  );
+}
+
+function ProtectedRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
+function PublicOnly({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return user ? <Navigate to="/" replace /> : children;
+}
 
 export default function App() {
-  const [tasks, setTasks] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-  const [dashboard, setDashboard] = useState(null);
-  const [ollama, setOllama] = useState(null);
-
-  const refresh = useCallback(async () => {
-    const [t, d] = await Promise.all([api.listTasks(), api.dashboard()]);
-    setTasks(t);
-    setDashboard(d);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    api.health().then((h) => setOllama(h.ollama)).catch(() => setOllama({ ok: false }));
-  }, [refresh]);
-
-  const selected = tasks.find((t) => t.id === selectedId) || null;
-
-  const createTask = async (data) => {
-    await api.createTask(data);
-    await refresh();
-  };
-
-  const deleteTask = async (id) => {
-    await api.deleteTask(id);
-    if (selectedId === id) setSelectedId(null);
-    await refresh();
-  };
-
-  const planTask = async (task) => {
-    const res = await api.planTask({
-      title: task.title,
-      category: task.category,
-      description: task.description,
-    });
-    await api.updateTask(task.id, { plan: res.plan });
-    await refresh();
-  };
-
-  const logTime = async (id, minutes, note) => {
-    await api.addSession(id, { minutes, note });
-    await refresh();
-  };
-
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" aria-hidden="true">⏱</div>
-          <div>
-            <div className="brand-name">TaskFlow</div>
-            <p>Turn big tasks into a clear next step.</p>
-          </div>
-        </div>
-        <div className="ollama-status" title="TaskFlow uses your local Ollama model">
-          <span className={`dot ${ollama === null ? '' : ollama.ok ? 'on' : 'off'}`} />
-          {ollama === null
-            ? 'Checking AI planner…'
-            : ollama.ok
-              ? 'AI planner ready'
-              : 'Ollama not detected'}
-        </div>
-      </header>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<PublicOnly><AuthPage mode="login" /></PublicOnly>} />
+          <Route path="/signup" element={<PublicOnly><AuthPage mode="signup" /></PublicOnly>} />
 
-      <Dashboard data={dashboard} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppShell />}>
+              <Route index element={<OverviewPage />} />
+              <Route path="tasks" element={<TasksPage />} />
+              <Route path="focus" element={<FocusPage />} />
+              <Route path="insights" element={<InsightsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+          </Route>
 
-      <main className="workspace">
-        <aside className="sidebar">
-          <TaskForm onCreate={createTask} />
-          <TaskList
-            tasks={tasks}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onDelete={deleteTask}
-          />
-        </aside>
-        <TaskDetail
-          task={selected}
-          onPlan={planTask}
-          onLogTime={logTime}
-          onDelete={deleteTask}
-        />
-      </main>
-    </div>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

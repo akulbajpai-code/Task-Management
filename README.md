@@ -1,96 +1,135 @@
 # ⏱️ TaskFlow
 
-**Track where your time goes — and let AI break your tasks down into "exactly where to start."**
+**A private, multi-user focus workspace that turns overwhelming tasks into clear next steps.**
 
-TaskFlow is a personal time-tracking dashboard with an AI task-planning engine. You log the work you're doing, see beautiful charts of how your time is spent, and when a task feels overwhelming, TaskFlow's AI (via a **free, local** [Ollama](https://ollama.com) model) turns it into a clear step-by-step action plan.
+TaskFlow helps students and independent learners capture tasks, choose a realistic focus session, and see where their time is going. When a task feels too big, its local AI planner (powered by **free, on-device [Ollama](https://ollama.com)**) creates a concrete, step-by-step place to start.
 
 ---
 
-## ✨ Features (MVP)
+## ✨ What it does
 
-- **Task log** — add tasks with a title, description, and category.
-- **Time tracking** — log sessions against any task (or use the built-in timer).
-- **AI breakdown** — one button turns any task into a numbered "where to start" plan using a local LLM.
-- **Dashboard** — visualize your time by category and by task with interactive charts.
+- **Personal accounts** — create an email/password account; each user only sees their own tasks, sessions, plans, and insights.
+- **Focused pages** — separate Overview, Tasks, Focus, Insights, and Settings pages with a right-side navigation rail.
+- **Task workspace** — add a task, include useful context, and keep a clear task queue.
+- **AI task breakdown** — turn any task into a numbered plan with a highlighted “Start here” action.
+- **Focus sessions** — choose a task, select a realistic time block, add an intention, and log progress.
+- **Insights** — visual charts show time by task and category.
+- **Local-first AI** — plans run through Ollama on the computer running TaskFlow; no paid AI API key is required.
 
 ---
 
 ## 🧱 Tech Stack
 
-| Layer    | Choice                              |
-|----------|-------------------------------------|
-| Frontend | React + Vite + Recharts             |
-| Backend  | Node.js + Express                   |
-| Storage  | JSON file (simple, zero-DB setup)   |
-| AI       | Ollama (local, free, private)       |
+| Layer | Choice |
+|---|---|
+| Frontend | React 18, Vite, React Router, Recharts |
+| Backend | Node.js, Express |
+| Authentication | bcrypt password hashes + signed JWT sessions |
+| Development storage | JSON file with per-user task ownership |
+| AI | Ollama (local, free, private) |
+
+> **MVP storage note:** JSON storage keeps setup very simple for a local demo. For a public deployment, move users and tasks to a hosted database (for example Supabase/Postgres) and set a strong `JWT_SECRET` environment variable.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Run locally
 
 ### Prerequisites
-- Node.js **18+** and npm
-- [Ollama](https://ollama.com) installed, with a model pulled (e.g. `ollama pull llama3.2`)
 
-### 1. Install everything
+- Node.js **18+** and npm
+- [Ollama](https://ollama.com) installed
+- A local model pulled, for example:
+
+```bash
+ollama pull llama3.2
+```
+
+### 1. Install dependencies
+
 ```bash
 npm install
 npm run install:all
 ```
 
-### 2. Make sure Ollama is running
+### 2. Start Ollama
+
 ```bash
-ollama pull llama3.2      # first time only
-ollama serve              # or just launch the Ollama app
+ollama serve
 ```
 
-### 3. Start the dev servers
+Or simply open the Ollama desktop app if it starts the local server automatically.
+
+### 3. Start TaskFlow
+
 ```bash
 npm run dev
 ```
-- Frontend: http://localhost:5173
-- API server: http://localhost:4000
 
-The frontend proxies `/api` requests to the backend automatically.
+Open [http://localhost:5173](http://localhost:5173). The first screen is the account sign-up page.
+
+- React app: `http://localhost:5173`
+- Express API: `http://localhost:4000`
+
+The Vite development server proxies `/api` requests to Express automatically.
+
+---
+
+## 🔐 Accounts and data privacy
+
+- Passwords are hashed with `bcryptjs`; TaskFlow never stores a plain-text password.
+- A signed token keeps a user logged in locally for seven days.
+- Every task API route verifies the signed user and filters data by its owner.
+- If upgrading an older single-user TaskFlow data file, the **first account created** safely claims the existing tasks.
+- AI plans are sent to the configured local Ollama server, not to a paid cloud AI provider.
+
+For deployment, set a long random secret before starting the server:
+
+```bash
+export JWT_SECRET="replace-this-with-a-long-random-secret"
+npm run dev
+```
 
 ---
 
 ## 🤖 About the AI breakdown
 
-The `/api/plan` endpoint talks to Ollama at `http://localhost:11434`. It uses a system prompt that forces the model to output a **numbered, actionable step-by-step plan** — starting with a concrete first action — so you're never staring at a blank page wondering where to begin.
+The `/api/plan` route communicates with Ollama at `http://localhost:11434`. Its system prompt asks for a plain-text numbered plan that:
 
-Model is configurable via the `OLLAMA_MODEL` environment variable (default: `llama3.2`).
+1. begins with a small, concrete first action,
+2. keeps every step actionable and measurable,
+3. includes a time estimate, and
+4. ends with a “First action (do this now)” reminder.
+
+The model can be changed with `OLLAMA_MODEL` (default: `llama3.2`).
 
 ---
 
-## 📁 Project Structure
+## 📁 Project structure
 
-```
+```text
 taskflow/
-├── README.md
-├── client/                 # React frontend (Vite)
-│   ├── index.html
-│   ├── vite.config.js
+├── client/
 │   └── src/
-│       ├── main.jsx
-│       ├── App.jsx
-│       ├── api.js
-│       └── components/
-└── server/                 # Express backend
-    ├── index.js            # API routes
-    ├── store.js            # JSON file data store
-    └── ollama.js           # Ollama client
+│       ├── auth/              # auth context and session restoration
+│       ├── components/        # login, app shell, task UI, charts
+│       ├── pages/             # overview, tasks, focus, insights, settings
+│       ├── App.jsx            # protected client-side routes
+│       └── api.js             # authenticated API client
+└── server/
+    ├── index.js               # Express API + auth middleware
+    ├── store.js               # JSON store and per-user ownership rules
+    └── ollama.js              # local Ollama client
 ```
 
 ---
 
-## 🗺️ Roadmap (stretch goals)
-- [ ] Charts by day/week/month
-- [ ] Pomodoro-style built-in timer
-- [ ] Export / shareable time reports
-- [ ] Auth + cloud sync
-- [ ] Mobile-friendly polish
+## 🗺️ Next ideas
 
----
+- [ ] Pomodoro countdown with pause/resume
+- [ ] Due dates and a backward planner
+- [ ] Weekly/monthly insight ranges
+- [ ] Cloud database + secure deployment
+- [ ] Google sign-in and email verification
+- [ ] Shareable progress reports
 
-Made as a personal project. Built with ❤️ and a local LLM.
+Built as a personal project with React, Express, and a local LLM.
