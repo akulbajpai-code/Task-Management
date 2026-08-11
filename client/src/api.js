@@ -45,6 +45,51 @@ function normalizeTask(rawTask) {
   };
 }
 
+function starterGuideFor(task) {
+  const hasDocuments = task.documents?.length > 0;
+  const context = task.description ? `Use this context: ${task.description}` : 'Read the task title and define what a successful outcome looks like.';
+  return [
+    {
+      step_number: 1,
+      title: `Clarify the finish line for “${task.title}”`,
+      goal: 'Turn the task into one specific, realistic outcome before starting the work.',
+      instructions: [
+        context,
+        'Write one sentence describing what “done” looks like for this task.',
+        'Choose the smallest action you can complete in the next 15 minutes.',
+      ],
+      success_criteria: ['You can describe the finished outcome in one sentence.', 'You have chosen one small action to start now.'],
+      estimated_minutes: 15,
+    },
+    {
+      step_number: 2,
+      title: hasDocuments ? 'Pull out the useful context' : 'Gather the materials you need',
+      goal: 'Put the information, tools, and requirements for this task in one place.',
+      instructions: hasDocuments
+        ? ['Open the attached document or documents.', 'Highlight the requirements, facts, examples, or directions you will need.', 'Write down the three most useful pieces of context.']
+        : ['List the materials, links, or tools you need.', 'Open only the resources relevant to this task.', 'Remove distractions before beginning the work block.'],
+      success_criteria: ['Your materials are ready in one place.', 'You know what information you will use next.'],
+      estimated_minutes: 20,
+    },
+    {
+      step_number: 3,
+      title: 'Complete the first focused work block',
+      goal: 'Create visible progress instead of trying to finish everything at once.',
+      instructions: ['Set a 25-minute focus block.', 'Work only on the smallest meaningful piece of the task.', 'Save a checkpoint describing what you completed and what remains.'],
+      success_criteria: ['You completed one concrete piece of work.', 'You saved a note that makes the next session easy to start.'],
+      estimated_minutes: 25,
+    },
+    {
+      step_number: 4,
+      title: 'Review, improve, and decide the next move',
+      goal: 'Check your work against the finish line and identify what still matters.',
+      instructions: ['Compare your progress with the outcome you wrote in Step 1.', 'Fix the most important gap or mistake first.', 'Either mark the task complete or schedule one more focused block.'],
+      success_criteria: ['You know whether the task is complete.', 'You have a clear next move if more work remains.'],
+      estimated_minutes: 20,
+    },
+  ];
+}
+
 const TASK_SELECT = `
   *,
   task_documents (*),
@@ -113,7 +158,7 @@ export const api = {
   isConfigured: isSupabaseConfigured,
 
   async health() {
-    return { ok: true, ollama: { ok: isSupabaseConfigured } };
+    return { ok: true, ollama: { ok: false } };
   },
 
   async signup({ name, email, password }) {
@@ -256,7 +301,39 @@ export const api = {
     return fetchTask(task.id);
   },
 
+  async createStarterGuide(task) {
+    const client = requireSupabase();
+    const user = await currentUser();
+    const steps = starterGuideFor(task);
+    const { error: deleteError } = await client.from('guided_plans').delete().eq('task_id', task.id);
+    throwIfError(deleteError);
+    const { data: guide, error: guideError } = await client
+      .from('guided_plans')
+      .insert({
+        task_id: task.id,
+        user_id: user.id,
+        source_summary: task.documents?.length ? 'A private starter guide built around the task and its attached context.' : 'A private starter guide built around the task details.',
+        current_step_number: 1,
+        status: 'in_progress',
+      })
+      .select()
+      .single();
+    throwIfError(guideError);
+    const { error: stepsError } = await client
+      .from('guided_steps')
+      .insert(steps.map((step) => ({ ...step, plan_id: guide.id, user_id: user.id })));
+    throwIfError(stepsError);
+    return fetchTask(task.id);
+  },
+
   async generateGuide(task) {
+    // The first public beta keeps uploaded documents private and does not send
+    // them to a third-party AI provider. A hosted AI Edge Function can replace
+    // this starter guide later when the creator enables it deliberately.
+    return this.createStarterGuide(task);
+  },
+
+  async generateHostedGuide(task) {
     await invokeGuidedAI({ action: 'generate_plan', taskId: task.id });
     return fetchTask(task.id);
   },

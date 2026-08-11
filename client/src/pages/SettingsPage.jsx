@@ -97,8 +97,8 @@ export default function SettingsPage() {
           <section className="card privacy-card">
             <div className="privacy-icon" aria-hidden="true">⌁</div>
             <p className="eyebrow">Privacy by design</p>
-            <h3>Your AI plans stay local.</h3>
-            <p>TaskFlow sends planning requests to Ollama running on this computer. There is no paid cloud AI API in this setup.</p>
+            <h3>Your documents stay private.</h3>
+            <p>TaskFlow stores documents in your private account folder and uses starter guides during the first public beta. No document text is sent to a hosted AI provider yet.</p>
           </section>
           <section className="card account-note-card">
             <p className="eyebrow">Multi-user MVP</p>

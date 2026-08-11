@@ -149,9 +149,9 @@ export default function AppShell() {
           </div>
         </div>
         <div className="topbar-right">
-          <div className="ollama-status" title="TaskFlow uses a rate-limited guided AI service">
+          <div className="ollama-status" title="TaskFlow keeps documents private and uses starter guides during the first public beta">
             <span className={`dot ${ollama === null ? '' : ollama.ok ? 'on' : 'off'}`} />
-            {ollama === null ? 'Checking guided AI…' : ollama.ok ? 'Guided AI beta' : 'AI setup needed'}
+            {ollama === null ? 'Loading Guided Mode…' : ollama.ok ? 'Guided AI beta' : 'Guided Mode ready'}
           </div>
           <div className="header-avatar" title={user?.name}>{initials(user?.name)}</div>
         </div>

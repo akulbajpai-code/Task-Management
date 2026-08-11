@@ -22,9 +22,6 @@ export default function GuidedModePage() {
   const [error, setError] = useState('');
   const [checkpoint, setCheckpoint] = useState('');
   const [saving, setSaving] = useState(false);
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [asking, setAsking] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,28 +67,11 @@ export default function GuidedModePage() {
     try {
       await api.completeStep(currentStep, guide);
       setCheckpoint('');
-      setAnswer('');
       await load();
     } catch (err) {
       setError(err.message || 'Could not complete this step.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const askForHelp = async (event) => {
-    event.preventDefault();
-    if (!question.trim() || !currentStep) return;
-    setAsking(true);
-    setError('');
-    try {
-      const response = await api.clarifyStep({ taskId, stepId: currentStep.id, question });
-      setAnswer(response);
-      setQuestion('');
-    } catch (err) {
-      setError(err.message || 'Could not get extra guidance right now.');
-    } finally {
-      setAsking(false);
     }
   };
 
@@ -190,13 +170,10 @@ export default function GuidedModePage() {
             </section>
 
             <section className="card clarify-card">
-              <p className="eyebrow">Need extra guidance?</p>
-              <h3>Ask about this step</h3>
-              <form onSubmit={askForHelp}>
-                <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="What is confusing or blocking you?" />
-                <button className="btn ghost checkpoint-button" type="submit" disabled={asking || !question.trim()}>{asking ? 'Thinking…' : 'Ask guided AI'}</button>
-              </form>
-              {answer && <div className="guided-answer"><span>Guided AI</span><p>{answer}</p></div>}
+              <p className="eyebrow">Make it smaller</p>
+              <h3>Stuck on this step?</h3>
+              <p className="starter-help-copy">Write one checkpoint describing the smallest part you can do next. A clear next action is more useful than trying to finish the whole step at once.</p>
+              <Link to="/tasks" className="starter-help-link">Review task context →</Link>
             </section>
           </aside>
         </div>

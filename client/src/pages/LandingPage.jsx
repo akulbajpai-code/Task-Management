@@ -28,12 +28,12 @@ export default function LandingPage() {
         <div className="landing-hero-copy">
           <p className="eyebrow">A calmer way to make progress</p>
           <h1>Know your next step. Then make it count.</h1>
-          <p className="landing-lede">TaskFlow turns overwhelming work into a clear plan, protects your focus time, and gives you a private space to see your progress grow.</p>
+          <p className="landing-lede">TaskFlow turns overwhelming work into a clear guide, protects your focus time, and gives you a private space to see your progress grow.</p>
           <div className="landing-hero-actions">
             <Link to="/signup" className="landing-primary-cta">Start free <span aria-hidden="true">→</span></Link>
             <a href="#how-it-works" className="landing-secondary-cta">See how it works</a>
           </div>
-          <p className="landing-reassurance"><span aria-hidden="true">✓</span> No paid AI API key. Your plans run with local Ollama.</p>
+          <p className="landing-reassurance"><span aria-hidden="true">✓</span> Private starter guides now · optional hosted AI later.</p>
         </div>
 
         <div className="landing-product-preview" aria-label="TaskFlow product preview">
@@ -78,7 +78,7 @@ export default function LandingPage() {
         </div>
         <ol>
           <li><span>01</span><div><strong>Capture what matters</strong><p>Add a task and the context that makes it yours.</p></div></li>
-          <li><span>02</span><div><strong>Get a clear plan</strong><p>Use private local AI to turn uncertainty into steps.</p></div></li>
+          <li><span>02</span><div><strong>Follow a clear guide</strong><p>Work through one concrete step at a time and save your progress.</p></div></li>
           <li><span>03</span><div><strong>Focus and reflect</strong><p>Log time, notice patterns, and keep moving forward.</p></div></li>
         </ol>
       </section>

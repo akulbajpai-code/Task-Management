@@ -100,7 +100,7 @@ export default function TaskForm({ onCreate }) {
           <div className="document-upload-copy">
             <strong>PDF, Word, or text</strong>
             <span>Up to {Math.round(MAX_DOCUMENT_BYTES / 1024 / 1024)} MB each · private to this task</span>
-            <span>Attached text is used only when you choose Build guided plan.</span>
+            <span>Attached files stay private to this task during the starter-guide beta.</span>
           </div>
         </div>
         {files.length > 0 && (

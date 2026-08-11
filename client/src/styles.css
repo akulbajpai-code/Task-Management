@@ -1197,3 +1197,7 @@ input:focus, select:focus, textarea:focus {
   .guided-step-actions > span { text-align: left; }
   .guided-complete-card, .guided-empty, .guided-error { padding: 30px 20px; }
 }
+
+.starter-help-copy { margin: 9px 0 0; color: #98a6c2; font-size: 11.5px; line-height: 1.55; }
+.starter-help-link { display: inline-block; margin-top: 13px; color: #c4beff; font-size: 11.5px; font-weight: 700; text-decoration: none; }
+.starter-help-link:hover { color: #ece9ff; }

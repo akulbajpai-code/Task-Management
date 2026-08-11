@@ -122,11 +122,11 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
 
       <div className="planner-toolbar">
         <div>
-          <p className="eyebrow">Guided AI plan</p>
+          <p className="eyebrow">Guided plan</p>
           <h3>{task.guide ? 'Your next step is ready' : 'Break the task into steps'}</h3>
         </div>
         <button className="btn plan-button" onClick={runPlan} disabled={planning}>
-          <span aria-hidden="true">✦</span> {planning ? 'Building guide…' : task.guide ? 'Refresh guide' : 'Build guided plan'}
+          <span aria-hidden="true">✦</span> {planning ? 'Building guide…' : task.guide ? 'Reset guide' : 'Create starter guide'}
         </button>
       </div>
 
@@ -209,7 +209,7 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
         />
       </div>
 
-      {!error && <p className="privacy-hint">Guided AI is rate-limited and uses only the task context and documents you choose to attach.</p>}
+      {!error && <p className="privacy-hint">Starter guides are private to this task. Hosted AI can be enabled later after you choose a document privacy policy.</p>}
     </section>
   );
 }

@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 
 const benefits = [
   'A private task space for every account',
-  'Guided AI plans built one step at a time',
+  'Guided plans built one step at a time',
   'Focus history and insights that stay yours',
 ];
 

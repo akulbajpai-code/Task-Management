@@ -2,7 +2,7 @@
 
 **A guided focus workspace that turns overwhelming work into a clear, achievable next step.**
 
-TaskFlow is a multi-user productivity app for students and independent learners. Users can capture a task, attach optional PDF/Word/text context, receive a structured AI guide, work through one detailed step at a time, save checkpoints, and see their focus history grow.
+TaskFlow is a multi-user productivity app for students and independent learners. Users can capture a task, attach optional PDF/Word/text context, receive a private structured starter guide, work through one detailed step at a time, save checkpoints, and see their focus history grow. The hosted AI upgrade is included as an optional later stage.
 
 ---
 
@@ -27,7 +27,7 @@ TaskFlow is a multi-user productivity app for students and independent learners.
 | Authentication | Supabase Auth |
 | Database | Supabase Postgres + Row Level Security |
 | Private file storage | Supabase Storage (`task-documents`) |
-| Guided AI | Supabase Edge Function + rate-limited OpenAI-compatible model |
+| Guided planning | Private starter guides now; optional Supabase Edge Function + hosted model later |
 | Document parsing | `pdfjs-dist`, `mammoth`, browser text extraction |
 | Deployment target | Cloudflare Pages |
 | Analytics | Private aggregate metrics + optional Google Analytics 4 |
@@ -39,7 +39,7 @@ TaskFlow is a multi-user productivity app for students and independent learners.
 - Every user-owned table is protected with **Row Level Security**.
 - Document storage is private; users can only access files in their own Storage folder.
 - The browser only receives a Supabase **Publishable** key. Never put a Supabase `service_role` key or an AI provider key in frontend code.
-- Guided AI is rate limited to **3 new guides/day** and **20 step-help requests/day** per user by default.
+- The optional hosted AI Edge Function is rate limited to **3 new guides/day** and **20 step-help requests/day** per user by default when the creator enables it.
 - The built-in visit counter uses a random browser ID, not task content, email, or IP address.
 
 ---
