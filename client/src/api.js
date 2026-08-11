@@ -1,59 +1,340 @@
-const TOKEN_KEY = 'taskflow_auth_token';
+import { documentMimeType, extractDocumentText, safeFilename, validateDocument } from './lib/documentText.js';
+import { requireSupabase, isSupabaseConfigured } from './lib/supabase.js';
 
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
+function throwIfError(error) {
+  if (error) throw new Error(error.message || 'Something went wrong.');
 }
 
-function setToken(token) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
+async function currentUser() {
+  const client = requireSupabase();
+  const { data, error } = await client.auth.getUser();
+  throwIfError(error);
+  if (!data.user) throw new Error('Please log in to continue.');
+  return data.user;
 }
 
-function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+function guideToLegacyText(guide) {
+  if (!guide?.guided_steps?.length) return null;
+  const steps = [...guide.guided_steps]
+    .sort((a, b) => a.step_number - b.step_number)
+    .map((step) => `${step.step_number}. ${step.title}${step.goal ? ` — ${step.goal}` : ''}`);
+  const first = guide.guided_steps.find((step) => step.step_number === 1);
+  return [...steps, '', `First action (do this now): ${first?.instructions?.[0] || first?.goal || 'Open Guided Mode and begin Step 1.'}`].join('\n');
 }
 
-async function request(path, options = {}) {
-  const token = getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
+function normalizeGuide(rawGuide) {
+  if (!rawGuide) return null;
+  const steps = [...(rawGuide.guided_steps || [])]
+    .sort((a, b) => a.step_number - b.step_number)
+    .map((step) => ({
+      ...step,
+      checkpoints: [...(step.step_checkpoints || [])].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+    }));
+  return { ...rawGuide, guided_steps: steps };
+}
+
+function normalizeTask(rawTask) {
+  const guide = normalizeGuide(rawTask.guided_plans?.[0]);
+  return {
+    ...rawTask,
+    totalMinutes: rawTask.total_minutes || 0,
+    total_minutes: rawTask.total_minutes || 0,
+    documents: rawTask.task_documents || [],
+    guide,
+    plan: guideToLegacyText(guide),
   };
+}
 
-  const res = await fetch(`/api${path}`, { ...options, headers });
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      if (body.error) message = body.error;
-    } catch {
-      // The API response did not contain JSON. Use the generic status message.
-    }
-    const error = new Error(message);
-    error.status = res.status;
-    throw error;
+const TASK_SELECT = `
+  *,
+  task_documents (*),
+  guided_plans (
+    *,
+    guided_steps (
+      *,
+      step_checkpoints (*)
+    )
+  )
+`;
+
+async function fetchTask(id) {
+  const client = requireSupabase();
+  const { data, error } = await client.from('tasks').select(TASK_SELECT).eq('id', id).single();
+  throwIfError(error);
+  return normalizeTask(data);
+}
+
+async function uploadDocument(task, file) {
+  const client = requireSupabase();
+  const user = await currentUser();
+  validateDocument(file);
+  const extractedText = await extractDocumentText(file);
+  const mimeType = documentMimeType(file);
+  const path = `${user.id}/${task.id}/${crypto.randomUUID()}-${safeFilename(file.name)}`;
+
+  const { error: storageError } = await client.storage
+    .from('task-documents')
+    .upload(path, file, { contentType: mimeType, upsert: false });
+  throwIfError(storageError);
+
+  const { data, error } = await client
+    .from('task_documents')
+    .insert({
+      task_id: task.id,
+      user_id: user.id,
+      file_name: file.name,
+      storage_path: path,
+      mime_type: mimeType,
+      size_bytes: file.size,
+      extracted_text: extractedText,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    await client.storage.from('task-documents').remove([path]);
+    throwIfError(error);
   }
-  return res.json();
+  return data;
+}
+
+async function invokeGuidedAI(body) {
+  const client = requireSupabase();
+  const { data, error } = await client.functions.invoke('guided-ai', { body });
+  if (error) {
+    const message = error.context?.error || error.message || 'Could not reach the guided AI service.';
+    throw new Error(message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
 }
 
 export const api = {
-  getToken,
-  setToken,
-  clearToken,
-  health: () => request('/health'),
-  trackVisit: (visitorId) => request('/analytics/visit', { method: 'POST', body: JSON.stringify({ visitorId }) }),
-  siteAnalytics: () => request('/analytics/summary'),
+  isConfigured: isSupabaseConfigured,
 
-  signup: (data) => request('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
-  login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-  me: () => request('/auth/me'),
-  updateProfile: (data) => request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
+  async health() {
+    return { ok: true, ollama: { ok: isSupabaseConfigured } };
+  },
 
-  listTasks: () => request('/tasks'),
-  createTask: (data) => request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
-  updateTask: (id, data) => request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteTask: (id) => request(`/tasks/${id}`, { method: 'DELETE' }),
-  addSession: (id, data) => request(`/tasks/${id}/sessions`, { method: 'POST', body: JSON.stringify(data) }),
-  planTask: (data) => request('/plan', { method: 'POST', body: JSON.stringify(data) }),
-  dashboard: () => request('/dashboard'),
+  async signup({ name, email, password }) {
+    const client = requireSupabase();
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: `${window.location.origin}/app`,
+      },
+    });
+    throwIfError(error);
+    return { user: data.user, needsEmailConfirmation: !data.session };
+  },
+
+  async login({ email, password }) {
+    const client = requireSupabase();
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    throwIfError(error);
+    return { user: data.user };
+  },
+
+  async logout() {
+    const client = requireSupabase();
+    const { error } = await client.auth.signOut();
+    throwIfError(error);
+  },
+
+  async profile(authUser) {
+    const client = requireSupabase();
+    let { data, error } = await client.from('profiles').select('*').eq('id', authUser.id).single();
+    // The auth trigger may take a moment to insert a brand-new profile.
+    if (error?.code === 'PGRST116') {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+      ({ data, error } = await client.from('profiles').select('*').eq('id', authUser.id).single());
+    }
+    if (error && error.code !== 'PGRST116') throwIfError(error);
+    return {
+      id: authUser.id,
+      email: authUser.email,
+      name: data?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'TaskFlow user',
+      isOwner: Boolean(data?.is_owner),
+    };
+  },
+
+  async updateProfile({ name }) {
+    const client = requireSupabase();
+    const user = await currentUser();
+    const { data, error } = await client
+      .from('profiles')
+      .update({ name: String(name || '').trim() })
+      .eq('id', user.id)
+      .select()
+      .single();
+    throwIfError(error);
+    return { id: user.id, email: user.email, name: data.name, isOwner: Boolean(data.is_owner) };
+  },
+
+  async listTasks() {
+    const client = requireSupabase();
+    const { data, error } = await client
+      .from('tasks')
+      .select(TASK_SELECT)
+      .order('created_at', { ascending: false });
+    throwIfError(error);
+    return (data || []).map(normalizeTask);
+  },
+
+  async getTask(id) {
+    return fetchTask(id);
+  },
+
+  async createTask({ title, description = '', category = 'General', dueDate = null }, files = []) {
+    const client = requireSupabase();
+    const user = await currentUser();
+    const { data, error } = await client
+      .from('tasks')
+      .insert({
+        user_id: user.id,
+        title: String(title || '').trim(),
+        description: String(description || '').trim(),
+        category: String(category || 'General').trim(),
+        due_date: dueDate || null,
+      })
+      .select()
+      .single();
+    throwIfError(error);
+
+    const task = normalizeTask({ ...data, task_documents: [], guided_plans: [] });
+    for (const file of files) await uploadDocument(task, file);
+    return fetchTask(task.id);
+  },
+
+  async updateTask(id, patch) {
+    const client = requireSupabase();
+    const updates = {};
+    if (patch.title !== undefined) updates.title = patch.title;
+    if (patch.description !== undefined) updates.description = patch.description;
+    if (patch.category !== undefined) updates.category = patch.category;
+    if (patch.dueDate !== undefined) updates.due_date = patch.dueDate;
+    const { error } = await client.from('tasks').update(updates).eq('id', id);
+    throwIfError(error);
+    return fetchTask(id);
+  },
+
+  async deleteTask(id) {
+    const client = requireSupabase();
+    const task = await fetchTask(id);
+    const paths = task.documents.map((document) => document.storage_path).filter(Boolean);
+    if (paths.length) await client.storage.from('task-documents').remove(paths);
+    const { error } = await client.from('tasks').delete().eq('id', id);
+    throwIfError(error);
+    return { ok: true };
+  },
+
+  async addSession(id, { minutes, note = '' }) {
+    const client = requireSupabase();
+    const task = await fetchTask(id);
+    const user = await currentUser();
+    const mins = Number(minutes);
+    if (!Number.isFinite(mins) || mins <= 0) throw new Error('Enter a valid number of minutes.');
+
+    const { error: sessionError } = await client.from('focus_sessions').insert({
+      task_id: id,
+      user_id: user.id,
+      minutes: mins,
+      note: String(note || '').trim(),
+    });
+    throwIfError(sessionError);
+    // A database trigger also maintains this value. This update keeps the UI
+    // responsive for the local MVP and is safe because RLS scopes it to owner.
+    const { error: taskError } = await client.from('tasks').update({ total_minutes: (task.totalMinutes || 0) + mins }).eq('id', id);
+    throwIfError(taskError);
+    return fetchTask(id);
+  },
+
+  async uploadDocuments(task, files) {
+    for (const file of files) await uploadDocument(task, file);
+    return fetchTask(task.id);
+  },
+
+  async generateGuide(task) {
+    await invokeGuidedAI({ action: 'generate_plan', taskId: task.id });
+    return fetchTask(task.id);
+  },
+
+  async saveCheckpoint(stepId, note) {
+    const text = String(note || '').trim();
+    if (!text) throw new Error('Write a short note before saving progress.');
+    const client = requireSupabase();
+    const user = await currentUser();
+    const { error: checkpointError } = await client.from('step_checkpoints').insert({ step_id: stepId, user_id: user.id, note: text });
+    throwIfError(checkpointError);
+    const { error: statusError } = await client.from('guided_steps').update({ status: 'in_progress' }).eq('id', stepId).eq('status', 'not_started');
+    // Updating a step that is already in progress is fine; ignore that no rows changed.
+    if (statusError) throwIfError(statusError);
+  },
+
+  async completeStep(step, guide) {
+    const client = requireSupabase();
+    const { error } = await client
+      .from('guided_steps')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', step.id);
+    throwIfError(error);
+
+    const ordered = [...(guide.guided_steps || [])].sort((a, b) => a.step_number - b.step_number);
+    const next = ordered.find((candidate) => candidate.step_number > step.step_number && candidate.status !== 'completed');
+    const updates = next
+      ? { current_step_number: next.step_number, status: 'in_progress' }
+      : { current_step_number: step.step_number, status: 'completed', completed_at: new Date().toISOString() };
+    const { error: guideError } = await client.from('guided_plans').update(updates).eq('id', guide.id);
+    throwIfError(guideError);
+  },
+
+  async clarifyStep({ taskId, stepId, question }) {
+    const data = await invokeGuidedAI({ action: 'clarify_step', taskId, stepId, question });
+    return data.answer;
+  },
+
+  async dashboard() {
+    const tasks = await this.listTasks();
+    const totalMinutes = tasks.reduce((sum, task) => sum + (task.totalMinutes || 0), 0);
+    const byCategory = {};
+    const byTask = [];
+    tasks.forEach((task) => {
+      const minutes = task.totalMinutes || 0;
+      byCategory[task.category] = (byCategory[task.category] || 0) + minutes;
+      if (minutes > 0) byTask.push({ name: task.title, minutes, category: task.category });
+    });
+    byTask.sort((a, b) => b.minutes - a.minutes);
+    return {
+      totalMinutes,
+      taskCount: tasks.length,
+      byCategory: Object.entries(byCategory).map(([name, minutes]) => ({ name, minutes })),
+      byTask,
+    };
+  },
+
+  async trackVisit(visitorId) {
+    const client = requireSupabase();
+    const { error } = await client.from('analytics_events').insert({ event_type: 'visit', visitor_id: visitorId });
+    // Analytics is optional and must never block a visit if a privacy policy or
+    // RLS setting has not been deployed yet.
+    if (error) return null;
+    return true;
+  },
+
+  async siteAnalytics() {
+    const client = requireSupabase();
+    const { data, error } = await client.rpc('creator_metrics');
+    throwIfError(error);
+    const metrics = Array.isArray(data) ? data[0] : data;
+    return {
+      totalVisits: Number(metrics?.total_visits || 0),
+      uniqueVisitors: Number(metrics?.unique_visitors || 0),
+      totalUsers: Number(metrics?.total_users || 0),
+      totalTasks: Number(metrics?.total_tasks || 0),
+      totalSessions: Number(metrics?.total_sessions || 0),
+      totalFocusMinutes: Number(metrics?.total_focus_minutes || 0),
+    };
+  },
 };

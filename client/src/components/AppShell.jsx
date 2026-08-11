@@ -95,10 +95,11 @@ export default function AppShell() {
     api.health().then((health) => setOllama(health.ollama)).catch(() => setOllama({ ok: false }));
   }, [refresh]);
 
-  const createTask = async (data) => {
-    const task = await api.createTask(data);
+  const createTask = async (data, files = []) => {
+    const task = await api.createTask(data, files);
     await refresh();
     setSelectedId(task.id);
+    return task;
   };
 
   const deleteTask = async (id) => {
@@ -107,12 +108,7 @@ export default function AppShell() {
   };
 
   const planTask = async (task) => {
-    const response = await api.planTask({
-      title: task.title,
-      category: task.category,
-      description: task.description,
-    });
-    await api.updateTask(task.id, { plan: response.plan });
+    await api.generateGuide(task);
     await refresh();
   };
 
@@ -153,9 +149,9 @@ export default function AppShell() {
           </div>
         </div>
         <div className="topbar-right">
-          <div className="ollama-status" title="TaskFlow uses your local Ollama model">
+          <div className="ollama-status" title="TaskFlow uses a rate-limited guided AI service">
             <span className={`dot ${ollama === null ? '' : ollama.ok ? 'on' : 'off'}`} />
-            {ollama === null ? 'Checking AI planner…' : ollama.ok ? 'AI planner ready' : 'Ollama not detected'}
+            {ollama === null ? 'Checking guided AI…' : ollama.ok ? 'Guided AI beta' : 'AI setup needed'}
           </div>
           <div className="header-avatar" title={user?.name}>{initials(user?.name)}</div>
         </div>

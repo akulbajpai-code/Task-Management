@@ -10,6 +10,7 @@ import TasksPage from './pages/TasksPage.jsx';
 import FocusPage from './pages/FocusPage.jsx';
 import InsightsPage from './pages/InsightsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import GuidedModePage from './pages/GuidedModePage.jsx';
 
 function LoadingScreen() {
   return (
@@ -77,6 +78,7 @@ export default function App() {
               <Route path="/focus" element={<FocusPage />} />
               <Route path="/insights" element={<InsightsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/guide/:taskId" element={<GuidedModePage />} />
             </Route>
           </Route>
 

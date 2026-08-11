@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 function unpackPlan(plan) {
   const steps = [];
@@ -110,13 +111,22 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
 
       {task.description && <p className="task-description">{task.description}</p>}
 
+      {task.documents?.length > 0 && (
+        <div className="attached-documents">
+          <span className="eyebrow">Attached context</span>
+          <div>
+            {task.documents.map((document) => <span key={document.id}>▣ {document.file_name}</span>)}
+          </div>
+        </div>
+      )}
+
       <div className="planner-toolbar">
         <div>
-          <p className="eyebrow">Your AI plan</p>
-          <h3>{task.plan ? 'A clear path forward' : 'Break the task into steps'}</h3>
+          <p className="eyebrow">Guided AI plan</p>
+          <h3>{task.guide ? 'Your next step is ready' : 'Break the task into steps'}</h3>
         </div>
         <button className="btn plan-button" onClick={runPlan} disabled={planning}>
-          <span aria-hidden="true">✦</span> {planning ? 'Building plan…' : task.plan ? 'Refresh plan' : 'Plan with AI'}
+          <span aria-hidden="true">✦</span> {planning ? 'Building guide…' : task.guide ? 'Refresh guide' : 'Build guided plan'}
         </button>
       </div>
 
@@ -158,9 +168,17 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
           <div className="plan-placeholder-icon" aria-hidden="true">✦</div>
           <div>
             <strong>Feeling stuck? Start smaller.</strong>
-            <p>Use your private local AI to turn this task into concrete, realistic next actions.</p>
+            <p>Add optional context or a document, then create a guided plan with one clear step at a time.</p>
           </div>
         </div>
+      )}
+
+      {task.guide && (
+        <Link to={`/guide/${task.id}`} className="guided-mode-link">
+          <span>▶</span>
+          <span><strong>Start Guided Mode</strong><small>Work through one detailed step at a time</small></span>
+          <span aria-hidden="true">→</span>
+        </Link>
       )}
 
       <div className="log-panel">
@@ -191,7 +209,7 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
         />
       </div>
 
-      {!error && <p className="privacy-hint">Your plan is generated privately with Ollama on this computer. No API key or paid service needed.</p>}
+      {!error && <p className="privacy-hint">Guided AI is rate-limited and uses only the task context and documents you choose to attach.</p>}
     </section>
   );
 }
