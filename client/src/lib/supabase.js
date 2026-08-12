@@ -4,6 +4,9 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const isSupabaseConfigured = Boolean(url && publishableKey);
+// Kept off for the private starter-guide beta. Enable only after a hosted AI
+// function and a clear document-processing disclosure are configured.
+export const isHostedGuidedAIEnabled = import.meta.env.VITE_GUIDED_AI_ENABLED === 'true';
 
 export const supabase = isSupabaseConfigured
   ? createClient(url, publishableKey, {

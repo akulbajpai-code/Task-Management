@@ -1,5 +1,5 @@
 import { documentMimeType, extractDocumentText, safeFilename, validateDocument } from './lib/documentText.js';
-import { requireSupabase, isSupabaseConfigured } from './lib/supabase.js';
+import { requireSupabase, isHostedGuidedAIEnabled, isSupabaseConfigured } from './lib/supabase.js';
 
 function throwIfError(error) {
   if (error) throw new Error(error.message || 'Something went wrong.');
@@ -172,9 +172,10 @@ async function invokeGuidedAI(body) {
 
 export const api = {
   isConfigured: isSupabaseConfigured,
+  guidedAIEnabled: isHostedGuidedAIEnabled,
 
   async health() {
-    return { ok: true, ollama: { ok: false } };
+    return { ok: true, ollama: { ok: isHostedGuidedAIEnabled } };
   },
 
   async signup({ name, email, password }) {
@@ -343,9 +344,8 @@ export const api = {
   },
 
   async generateGuide(task) {
-    // The first public beta keeps uploaded documents private and does not send
-    // them to a third-party AI provider. A hosted AI Edge Function can replace
-    // this starter guide later when the creator enables it deliberately.
+    if (isHostedGuidedAIEnabled) return this.generateHostedGuide(task);
+    // The private starter-guide beta does not send documents to an external provider.
     return this.createStarterGuide(task);
   },
 

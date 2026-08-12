@@ -28,8 +28,8 @@ function stripCodeFence(value: string) {
 }
 
 async function callHostedAI(system: string, prompt: string) {
-  const apiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!apiKey) throw new Error('Guided AI is not configured yet. Add OPENAI_API_KEY to Supabase Edge Function secrets.');
+  const apiKey = Deno.env.get('AI_API_KEY') || Deno.env.get('OPENAI_API_KEY');
+  if (!apiKey) throw new Error('Guided AI is not configured yet. Add AI_API_KEY to Supabase Edge Function secrets.');
 
   const baseUrl = (Deno.env.get('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
   const model = Deno.env.get('AI_MODEL') || 'gpt-4o-mini';

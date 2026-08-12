@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../api.js';
 
 function unpackPlan(plan) {
   const steps = [];
@@ -54,6 +55,7 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
   }, [task?.id]);
 
   const planData = useMemo(() => unpackPlan(task?.plan), [task?.plan]);
+  const hostedGuidedAI = api.guidedAIEnabled;
 
   if (!task) {
     return (
@@ -120,13 +122,17 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
         </div>
       )}
 
+      {hostedGuidedAI && task.documents?.length > 0 && (
+        <p className="ai-document-disclosure">By building an AI guide, extracted text from the attached documents will be sent to the configured hosted AI provider for this request.</p>
+      )}
+
       <div className="planner-toolbar">
         <div>
-          <p className="eyebrow">Guided plan</p>
+          <p className="eyebrow">{hostedGuidedAI ? 'Document-aware AI guide' : 'Guided plan'}</p>
           <h3>{task.guide ? 'Your next step is ready' : 'Break the task into steps'}</h3>
         </div>
         <button className="btn plan-button" onClick={runPlan} disabled={planning}>
-          <span aria-hidden="true">✦</span> {planning ? 'Building guide…' : task.guide ? 'Reset guide' : 'Create starter guide'}
+          <span aria-hidden="true">✦</span> {planning ? 'Building guide…' : task.guide ? (hostedGuidedAI ? 'Refresh AI guide' : 'Reset guide') : (hostedGuidedAI ? 'Build AI guide' : 'Create starter guide')}
         </button>
       </div>
 
@@ -209,7 +215,7 @@ export default function TaskDetail({ task, onPlan, onLogTime, onDelete }) {
         />
       </div>
 
-      {!error && <p className="privacy-hint">Starter guides are private to this task. Hosted AI can be enabled later after you choose a document privacy policy.</p>}
+      {!error && <p className="privacy-hint">{hostedGuidedAI ? 'Hosted AI is enabled for this beta. Only the task context and documents you choose are sent for guide generation.' : 'Starter guides are private to this task. Hosted AI can be enabled later after you choose a document privacy policy.'}</p>}
     </section>
   );
 }

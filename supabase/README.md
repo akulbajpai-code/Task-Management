@@ -11,35 +11,50 @@ This creates:
 - Storage policies for the private `task-documents` bucket
 - private creator analytics
 
-## 2. Deploy Guided AI
+## 2. Private starter-guide beta
 
-The `guided-ai` Edge Function uses an OpenAI-compatible hosted model. It intentionally has daily limits: 3 new guided plans and 20 step-help requests per user per day.
+The app launches with private starter guides by default. They do not send attached document text to any hosted AI provider.
+
+## 3. Optional Gemini test AI
+
+For non-sensitive personal test documents only, you can enable Gemini through Google AI Studio. Google’s free tier may use prompts to improve its products, so do not enable this mode for real users’ private records without a clear consent flow and a privacy policy.
+
+The `guided-ai` Edge Function uses an OpenAI-compatible HTTP format. Gemini supports this compatibility endpoint.
 
 Install the Supabase CLI if needed, then run from the repository root:
 
 ```bash
+npx supabase init
 npx supabase login
 npx supabase link --project-ref YOUR_SUPABASE_PROJECT_REF
-npx supabase secrets set OPENAI_API_KEY=YOUR_HOSTED_AI_KEY
-npx supabase secrets set AI_MODEL=gpt-4o-mini
+```
+
+Create a Gemini API key in Google AI Studio, then set secrets. Never put this key in `.env.local`, browser code, GitHub, or a screenshot.
+
+```bash
+npx supabase secrets set AI_API_KEY=YOUR_GEMINI_API_KEY
+npx supabase secrets set AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+npx supabase secrets set AI_MODEL=gemini-3.5-flash-lite
 npx supabase functions deploy guided-ai
 ```
 
-If you use an OpenAI-compatible provider with a different API endpoint, add:
+Then enable the browser-side switch in `.env.local` and Cloudflare Pages environment variables:
 
-```bash
-npx supabase secrets set AI_BASE_URL=https://your-provider.example/v1
+```text
+VITE_GUIDED_AI_ENABLED=true
 ```
 
-Do not put `OPENAI_API_KEY` in `.env.local`, client-side code, GitHub, or a screenshot. It belongs only in Supabase Edge Function secrets.
+The deployed function has daily limits: 3 new AI guides and 20 step-help requests per user.
 
-## 3. Local frontend configuration
+## 4. Local frontend configuration
 
 Create `.env.local` at the repository root:
 
 ```text
 VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+# Leave false for the private starter-guide beta.
+VITE_GUIDED_AI_ENABLED=false
 ```
 
 Use only a Supabase **Publishable** key here. Never use a `service_role` or secret key in the browser.

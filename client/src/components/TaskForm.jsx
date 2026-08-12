@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DOCUMENT_ACCEPT, MAX_DOCUMENT_BYTES, validateDocument } from '../lib/documentText.js';
+import { api } from '../api.js';
 
 export default function TaskForm({ onCreate }) {
   const [title, setTitle] = useState('');
@@ -43,6 +44,8 @@ export default function TaskForm({ onCreate }) {
       setSaving(false);
     }
   };
+
+  const hostedGuidedAI = api.guidedAIEnabled;
 
   return (
     <section className="card create-task-card">
@@ -100,7 +103,7 @@ export default function TaskForm({ onCreate }) {
           <div className="document-upload-copy">
             <strong>PDF, Word, or text</strong>
             <span>Up to {Math.round(MAX_DOCUMENT_BYTES / 1024 / 1024)} MB each · private to this task</span>
-            <span>Attached files stay private to this task during the starter-guide beta.</span>
+            <span>{hostedGuidedAI ? 'When you build an AI guide, extracted text is sent to the configured provider.' : 'Attached files stay private to this task during the starter-guide beta.'}</span>
           </div>
         </div>
         {files.length > 0 && (
