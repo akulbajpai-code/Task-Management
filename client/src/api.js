@@ -24,22 +24,38 @@ function guideToLegacyText(guide) {
 
 function normalizeGuide(rawGuide) {
   if (!rawGuide) return null;
-  const steps = [...(rawGuide.guided_steps || [])]
+  // PostgREST returns a one-to-one embedded guided_plan as an object, while
+  // other embedded relationships arrive as arrays. Support both shapes.
+  const rawSteps = Array.isArray(rawGuide.guided_steps)
+    ? rawGuide.guided_steps
+    : (rawGuide.guided_steps ? [rawGuide.guided_steps] : []);
+  const steps = [...rawSteps]
     .sort((a, b) => a.step_number - b.step_number)
-    .map((step) => ({
-      ...step,
-      checkpoints: [...(step.step_checkpoints || [])].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
-    }));
+    .map((step) => {
+      const rawCheckpoints = Array.isArray(step.step_checkpoints)
+        ? step.step_checkpoints
+        : (step.step_checkpoints ? [step.step_checkpoints] : []);
+      return {
+        ...step,
+        checkpoints: [...rawCheckpoints].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+      };
+    });
   return { ...rawGuide, guided_steps: steps };
 }
 
 function normalizeTask(rawTask) {
-  const guide = normalizeGuide(rawTask.guided_plans?.[0]);
+  const rawGuide = Array.isArray(rawTask.guided_plans)
+    ? rawTask.guided_plans[0]
+    : rawTask.guided_plans;
+  const rawDocuments = Array.isArray(rawTask.task_documents)
+    ? rawTask.task_documents
+    : (rawTask.task_documents ? [rawTask.task_documents] : []);
+  const guide = normalizeGuide(rawGuide);
   return {
     ...rawTask,
     totalMinutes: rawTask.total_minutes || 0,
     total_minutes: rawTask.total_minutes || 0,
-    documents: rawTask.task_documents || [],
+    documents: rawDocuments,
     guide,
     plan: guideToLegacyText(guide),
   };
