@@ -35,9 +35,13 @@ function normalizeGuide(rawGuide) {
       const rawCheckpoints = Array.isArray(step.step_checkpoints)
         ? step.step_checkpoints
         : (step.step_checkpoints ? [step.step_checkpoints] : []);
+      const rawMessages = Array.isArray(step.step_messages)
+        ? step.step_messages
+        : (step.step_messages ? [step.step_messages] : []);
       return {
         ...step,
         checkpoints: [...rawCheckpoints].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+        messages: [...rawMessages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
       };
     });
   return { ...rawGuide, guided_steps: steps };
@@ -113,7 +117,8 @@ const TASK_SELECT = `
     *,
     guided_steps (
       *,
-      step_checkpoints (*)
+      step_checkpoints (*),
+      step_messages (*)
     )
   )
 `;
@@ -381,6 +386,37 @@ export const api = {
       : { current_step_number: step.step_number, status: 'completed', completed_at: new Date().toISOString() };
     const { error: guideError } = await client.from('guided_plans').update(updates).eq('id', guide.id);
     throwIfError(guideError);
+  },
+
+  async sendStepMessage({ taskId, step, message }) {
+    const text = String(message || '').trim();
+    if (!text) throw new Error('Write a message before sending it.');
+    const client = requireSupabase();
+    const user = await currentUser();
+    const { data: userMessage, error: userError } = await client
+      .from('step_messages')
+      .insert({ step_id: step.id, user_id: user.id, role: 'user', content: text })
+      .select()
+      .single();
+    throwIfError(userError);
+
+    try {
+      const history = [...(step.messages || []), userMessage]
+        .slice(-10)
+        .map((item) => ({ role: item.role, content: item.content }));
+      const data = await invokeGuidedAI({ action: 'clarify_step', taskId, stepId: step.id, question: text, history });
+      const { error: assistantError } = await client
+        .from('step_messages')
+        .insert({ step_id: step.id, user_id: user.id, role: 'assistant', content: data.answer })
+        .select()
+        .single();
+      throwIfError(assistantError);
+      return data.answer;
+    } catch (error) {
+      // Keep the user's message so their question is not lost if the provider
+      // is temporarily unavailable.
+      throw error;
+    }
   },
 
   async clarifyStep({ taskId, stepId, question }) {

@@ -11,11 +11,15 @@ This creates:
 - Storage policies for the private `task-documents` bucket
 - private creator analytics
 
-## 2. Private starter-guide beta
+## 2. Add persistent step messages
+
+If you already ran `schema.sql`, open `add_step_messages.sql` in the Supabase SQL Editor and run it once. It adds private direct-message history for each guided step.
+
+## 3. Private starter-guide beta
 
 The app launches with private starter guides by default. They do not send attached document text to any hosted AI provider.
 
-## 3. Optional Gemini test AI
+## 4. Optional Gemini test AI
 
 For non-sensitive personal test documents only, you can enable Gemini through Google AI Studio. Google’s free tier may use prompts to improve its products, so do not enable this mode for real users’ private records without a clear consent flow and a privacy policy.
 

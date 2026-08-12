@@ -22,9 +22,8 @@ export default function GuidedModePage() {
   const [error, setError] = useState('');
   const [checkpoint, setCheckpoint] = useState('');
   const [saving, setSaving] = useState(false);
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [asking, setAsking] = useState(false);
+  const [message, setMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,7 +70,6 @@ export default function GuidedModePage() {
     try {
       await api.completeStep(currentStep, guide);
       setCheckpoint('');
-      setAnswer('');
       await load();
     } catch (err) {
       setError(err.message || 'Could not complete this step.');
@@ -80,19 +78,19 @@ export default function GuidedModePage() {
     }
   };
 
-  const askForHelp = async (event) => {
+  const sendMessage = async (event) => {
     event.preventDefault();
-    if (!question.trim() || !currentStep) return;
-    setAsking(true);
+    if (!message.trim() || !currentStep) return;
+    setSendingMessage(true);
     setError('');
     try {
-      const response = await api.clarifyStep({ taskId, stepId: currentStep.id, question });
-      setAnswer(response);
-      setQuestion('');
+      await api.sendStepMessage({ taskId, step: currentStep, message });
+      setMessage('');
+      await load();
     } catch (err) {
-      setError(err.message || 'Could not get extra guidance right now.');
+      setError(err.message || 'Could not send that message right now.');
     } finally {
-      setAsking(false);
+      setSendingMessage(false);
     }
   };
 
@@ -191,14 +189,31 @@ export default function GuidedModePage() {
             </section>
 
             {hostedGuidedAI ? (
-              <section className="card clarify-card">
-                <p className="eyebrow">Need extra guidance?</p>
-                <h3>Ask about this step</h3>
-                <form onSubmit={askForHelp}>
-                  <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="What is confusing or blocking you?" />
-                  <button className="btn ghost checkpoint-button" type="submit" disabled={asking || !question.trim()}>{asking ? 'Thinking…' : 'Ask guided AI'}</button>
+              <section className="card step-chat-card">
+                <div className="step-chat-heading">
+                  <div>
+                    <p className="eyebrow">TaskFlow AI</p>
+                    <h3>Ask about this step</h3>
+                  </div>
+                  <span className="chat-online"><i /> Online</span>
+                </div>
+                <p className="step-chat-context">It knows this task, the current step, and the document context you attached.</p>
+                <div className="step-chat-thread" aria-live="polite">
+                  {!currentStep.messages?.length && (
+                    <div className="chat-message assistant"><span>TaskFlow AI</span><p>What is getting in your way with this step? Ask me anything and I’ll help you make the next move smaller and clearer.</p></div>
+                  )}
+                  {currentStep.messages?.map((item) => (
+                    <div key={item.id} className={`chat-message ${item.role}`}>
+                      <span>{item.role === 'assistant' ? 'TaskFlow AI' : 'You'}</span>
+                      <p>{item.content}</p>
+                    </div>
+                  ))}
+                  {sendingMessage && <div className="chat-message assistant thinking"><span>TaskFlow AI</span><p>Thinking through your step…</p></div>}
+                </div>
+                <form className="step-chat-compose" onSubmit={sendMessage}>
+                  <textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="e.g. I’m not sure how to choose the right journal. What should I do first?" />
+                  <button className="btn" type="submit" disabled={sendingMessage || !message.trim()}>{sendingMessage ? 'Sending…' : 'Send message'} <span aria-hidden="true">→</span></button>
                 </form>
-                {answer && <div className="guided-answer"><span>Guided AI</span><p>{answer}</p></div>}
               </section>
             ) : (
               <section className="card clarify-card">

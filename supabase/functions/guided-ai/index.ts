@@ -185,8 +185,14 @@ Deno.serve(async (req) => {
         .single();
       if (stepError || !step) return response({ error: 'Guided step not found.' }, 404);
       const docs = await documentContext(admin, task.id);
-      const system = 'You are TaskFlow Guided AI. Help the user complete only the current step. Be encouraging, specific, and concise. Give a concrete next action, not a new full plan.';
-      const prompt = `TASK: ${task.title}\nCURRENT STEP: ${step.title}\nGOAL: ${step.goal}\nINSTRUCTIONS: ${JSON.stringify(step.instructions)}\nUSER QUESTION: ${question}\nDOCUMENT EXCERPTS: ${docs}`;
+      const history = Array.isArray(body.history)
+        ? body.history
+          .slice(-10)
+          .map((message: { role?: unknown; content?: unknown }) => `${message.role === 'assistant' ? 'TASKFLOW AI' : 'USER'}: ${String(message.content || '').slice(0, 1800)}`)
+          .join('\n')
+        : '';
+      const system = 'You are TaskFlow Guided AI in a direct-message conversation. Help the user complete only the current step. Be encouraging, specific, and concise. Use the task and attached document excerpts when relevant. Give a concrete next action, not a replacement full plan. Never pretend you completed work for the user.';
+      const prompt = `TASK: ${task.title}\nCURRENT STEP: ${step.title}\nGOAL: ${step.goal}\nINSTRUCTIONS: ${JSON.stringify(step.instructions)}\n\nRECENT CONVERSATION:\n${history || 'No previous messages.'}\n\nLATEST USER MESSAGE: ${question}\n\nDOCUMENT EXCERPTS:\n${docs}`;
       const answer = await callHostedAI(system, prompt);
       return response({ ok: true, answer: answer.slice(0, 4000) });
     }

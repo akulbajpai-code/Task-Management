@@ -1201,3 +1201,23 @@ input:focus, select:focus, textarea:focus {
 .starter-help-copy { margin: 9px 0 0; color: #98a6c2; font-size: 11.5px; line-height: 1.55; }
 .starter-help-link { display: inline-block; margin-top: 13px; color: #c4beff; font-size: 11.5px; font-weight: 700; text-decoration: none; }
 .starter-help-link:hover { color: #ece9ff; }
+
+/* Direct-message AI assistance inside Guided Mode */
+.step-chat-card { padding: 18px; }
+.step-chat-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.step-chat-heading h3 { margin: 0; color: #e7ecfa; font-size: 15px; letter-spacing: -.02em; }
+.chat-online { display: inline-flex; align-items: center; gap: 5px; padding: 5px 7px; border: 1px solid rgba(66, 214, 164, .2); border-radius: 99px; color: #86e9c5; font-size: 9.5px; font-weight: 700; background: rgba(66, 214, 164, .08); }
+.chat-online i { width: 5px; height: 5px; border-radius: 50%; background: #42d6a4; box-shadow: 0 0 7px rgba(66, 214, 164, .75); }
+.step-chat-context { margin: 9px 0 0; color: #8796b5; font-size: 10.5px; line-height: 1.45; }
+.step-chat-thread { display: grid; max-height: 290px; gap: 9px; margin-top: 13px; overflow-y: auto; padding-right: 3px; scrollbar-color: #455275 transparent; scrollbar-width: thin; }
+.chat-message { max-width: 94%; padding: 10px; border-radius: 11px; font-size: 11px; line-height: 1.5; }
+.chat-message span { display: block; margin-bottom: 4px; font-size: 9px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
+.chat-message p { margin: 0; white-space: pre-wrap; }
+.chat-message.assistant { justify-self: start; border: 1px solid rgba(104, 91, 203, .28); color: #dbe2f3; background: rgba(76, 65, 160, .13); }
+.chat-message.assistant span { color: #c4beff; }
+.chat-message.user { justify-self: end; color: #dce9f5; background: rgba(49, 100, 144, .22); }
+.chat-message.user span { color: #91d8ff; }
+.chat-message.thinking { opacity: .75; font-style: italic; }
+.step-chat-compose { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(56, 70, 104, .64); }
+.step-chat-compose textarea { min-height: 73px; resize: vertical; }
+.step-chat-compose .btn { width: 100%; min-height: 38px; }
