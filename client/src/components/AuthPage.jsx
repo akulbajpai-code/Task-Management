@@ -51,7 +51,7 @@ export default function AuthPage({ mode }) {
           <div className="logo" aria-hidden="true">⏱</div>
           <div>
             <div className="brand-name">TaskFlow</div>
-            <p>Make progress, one focused step at a time.</p>
+            <p>Use AI for guidance, not shortcuts.</p>
           </div>
         </div>
 

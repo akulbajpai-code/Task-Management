@@ -1221,3 +1221,7 @@ input:focus, select:focus, textarea:focus {
 .step-chat-compose { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(56, 70, 104, .64); }
 .step-chat-compose textarea { min-height: 73px; resize: vertical; }
 .step-chat-compose .btn { width: 100%; min-height: 38px; }
+
+.preview-live.demo { color: #c5c0ff; border-color: rgba(139, 124, 255, .22); background: rgba(139, 124, 255, .08); }
+.preview-live.demo i { background: #a99cff; box-shadow: 0 0 8px #a99cff; }
+.preview-demo-note { position: relative; z-index: 1; margin: 11px 1px 0; color: #7f8eae; font-size: 9.5px; line-height: 1.4; }

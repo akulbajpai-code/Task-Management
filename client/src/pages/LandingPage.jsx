@@ -14,7 +14,7 @@ export default function LandingPage() {
           <span className="logo" aria-hidden="true">⏱</span>
           <span>
             <strong>TaskFlow</strong>
-            <small>Plan clearly. Focus deeply.</small>
+            <small>Use AI for guidance, not shortcuts.</small>
           </span>
         </Link>
         <nav className="landing-nav" aria-label="Landing navigation">
@@ -26,30 +26,31 @@ export default function LandingPage() {
 
       <section className="landing-hero">
         <div className="landing-hero-copy">
-          <p className="eyebrow">A calmer way to make progress</p>
+          <p className="eyebrow">Responsible AI for real work</p>
           <h1>Know your next step. Then make it count.</h1>
-          <p className="landing-lede">TaskFlow turns overwhelming work into a clear guide, protects your focus time, and gives you a private space to see your progress grow.</p>
+          <p className="landing-lede">TaskFlow helps you think through overwhelming work, choose a meaningful next move, and stay accountable for doing the work yourself.</p>
           <div className="landing-hero-actions">
             <Link to="/signup" className="landing-primary-cta">Start free <span aria-hidden="true">→</span></Link>
             <a href="#how-it-works" className="landing-secondary-cta">See how it works</a>
           </div>
-          <p className="landing-reassurance"><span aria-hidden="true">✓</span> Private starter guides now · optional hosted AI later.</p>
+          <p className="landing-reassurance"><span aria-hidden="true">✓</span> Your ideas stay yours. AI is there to guide—not replace—you.</p>
         </div>
 
-        <div className="landing-product-preview" aria-label="TaskFlow product preview">
-          <div className="preview-topline"><span>Today’s focus</span><span className="preview-live"><i /> In progress</span></div>
+        <figure className="landing-product-preview" aria-label="Example TaskFlow workspace preview, not private user data">
+          <div className="preview-topline"><span>Example workspace</span><span className="preview-live demo"><i /> Demo preview</span></div>
           <div className="preview-task">
-            <span className="preview-label">Your next best action</span>
-            <h2>Finish the research outline</h2>
-            <p>Review the three strongest sources and write a one-sentence takeaway from each.</p>
-            <div className="preview-task-footer"><span>School · 25 min</span><span>Open workspace →</span></div>
+            <span className="preview-label">Sample next action</span>
+            <h2>Plan a project outline</h2>
+            <p>Turn one big project into a focused first session you can actually begin today.</p>
+            <div className="preview-task-footer"><span>Example · 25 min</span><span>Open workspace →</span></div>
           </div>
           <div className="preview-metrics">
-            <div><span>Focus time</span><strong>2.5h</strong></div>
-            <div><span>Tasks planned</span><strong>4</strong></div>
-            <div><span>Categories</span><strong>3</strong></div>
+            <div><span>Focus session</span><strong>25m</strong></div>
+            <div><span>Guide steps</span><strong>4</strong></div>
+            <div><span>Private tasks</span><strong>1</strong></div>
           </div>
-        </div>
+          <figcaption className="preview-demo-note">Example preview only — your private tasks appear only after you sign in.</figcaption>
+        </figure>
       </section>
 
       <section className="landing-benefits" aria-label="TaskFlow benefits">
@@ -66,7 +67,7 @@ export default function LandingPage() {
         <article>
           <div className="landing-benefit-icon green"><MiniIcon type="arrow" /></div>
           <h2>Keep your work private</h2>
-          <p>Every account has its own tasks, plans, sessions, and focused workspace.</p>
+          <p>Every account has its own tasks, documents, sessions, and focused workspace.</p>
         </article>
       </section>
 
@@ -78,7 +79,7 @@ export default function LandingPage() {
         </div>
         <ol>
           <li><span>01</span><div><strong>Capture what matters</strong><p>Add a task and the context that makes it yours.</p></div></li>
-          <li><span>02</span><div><strong>Follow a clear guide</strong><p>Work through one concrete step at a time and save your progress.</p></div></li>
+          <li><span>02</span><div><strong>Use guidance responsibly</strong><p>Use a clear guide to move forward, while keeping your own judgment in charge.</p></div></li>
           <li><span>03</span><div><strong>Focus and reflect</strong><p>Log time, notice patterns, and keep moving forward.</p></div></li>
         </ol>
       </section>
@@ -86,12 +87,12 @@ export default function LandingPage() {
       <section className="landing-final-cta">
         <p className="eyebrow">Start with one step</p>
         <h2>Make room for the work that matters.</h2>
-        <p>Create your TaskFlow account and build a calmer way to get things done.</p>
+        <p>Use AI for guidance, not shortcuts—and build a calmer way to get things done.</p>
         <Link to="/signup" className="landing-primary-cta">Create free account <span aria-hidden="true">→</span></Link>
       </section>
 
       <footer className="landing-footer">
-        <span>TaskFlow · Local-first focus planning</span>
+        <span>TaskFlow · Responsible AI for focused work</span>
         <Link to="/login">Log in</Link>
       </footer>
     </main>
