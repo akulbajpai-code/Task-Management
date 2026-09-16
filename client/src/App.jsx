@@ -4,6 +4,7 @@ import { api } from './api.js';
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx';
 import AuthPage from './components/AuthPage.jsx';
 import AppShell from './components/AppShell.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import OverviewPage from './pages/OverviewPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
@@ -65,25 +66,27 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <VisitTracker />
-        <Routes>
-          <Route path="/" element={<HomeRoute />} />
-          <Route path="/login" element={<PublicOnly><AuthPage mode="login" /></PublicOnly>} />
-          <Route path="/signup" element={<PublicOnly><AuthPage mode="signup" /></PublicOnly>} />
+        <ErrorBoundary>
+          <VisitTracker />
+          <Routes>
+            <Route path="/" element={<HomeRoute />} />
+            <Route path="/login" element={<PublicOnly><AuthPage mode="login" /></PublicOnly>} />
+            <Route path="/signup" element={<PublicOnly><AuthPage mode="signup" /></PublicOnly>} />
 
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AppShell />}>
-              <Route path="/app" element={<OverviewPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/focus" element={<FocusPage />} />
-              <Route path="/insights" element={<InsightsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/guide/:taskId" element={<GuidedModePage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppShell />}>
+                <Route path="/app" element={<OverviewPage />} />
+                <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/focus" element={<FocusPage />} />
+                <Route path="/insights" element={<InsightsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/guide/:taskId" element={<GuidedModePage />} />
+              </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </AuthProvider>
     </BrowserRouter>
   );

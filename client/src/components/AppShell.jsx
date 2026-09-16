@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
@@ -66,19 +66,22 @@ export default function AppShell() {
   const { user, logout, updateProfile } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [ollama, setOllama] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dataError, setDataError] = useState('');
+  const hasLoaded = useRef(false);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoaded.current) setLoading(true);
     setDataError('');
     try {
       const [nextTasks, nextDashboard] = await Promise.all([api.listTasks(), api.dashboard()]);
       setTasks(nextTasks);
       setDashboard(nextDashboard);
-      setSelectedId((current) => nextTasks.some((task) => task.id === current) ? current : (nextTasks[0]?.id || null));
+      setSelectedId((current) => current || nextTasks[0]?.id || null);
     } catch (err) {
       if (err.status === 401) {
         logout();
@@ -86,35 +89,70 @@ export default function AppShell() {
       }
       setDataError(err.message || 'Could not load your workspace.');
     } finally {
+      hasLoaded.current = true;
       setLoading(false);
     }
   }, [logout]);
+
+  const selectTask = useCallback(async (id) => {
+    if (!id) {
+      setSelectedId(null);
+      setSelectedTask(null);
+      return;
+    }
+    setSelectedId(id);
+    setDetailLoading(true);
+    try {
+      const fullTask = await api.getTask(id);
+      setSelectedTask(fullTask);
+    } catch (err) {
+      setDataError(err.message || 'Could not open this task.');
+      setSelectedTask(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     refresh();
     api.health().then((health) => setOllama(health.ollama)).catch(() => setOllama({ ok: false }));
   }, [refresh]);
 
+  useEffect(() => {
+    if (selectedId && selectedTask?.id !== selectedId) selectTask(selectedId);
+  }, [selectedId, selectedTask?.id, selectTask]);
+
   const createTask = async (data, files = []) => {
     const task = await api.createTask(data, files);
-    await refresh();
+    // Select the fresh task immediately instead of reloading the whole page.
     setSelectedId(task.id);
+    setSelectedTask(task);
+    setTasks((current) => [task, ...current.filter((item) => item.id !== task.id)]);
+    api.dashboard().then(setDashboard).catch(() => {});
     return task;
   };
 
   const deleteTask = async (id) => {
     await api.deleteTask(id);
-    await refresh();
+    setTasks((current) => current.filter((task) => task.id !== id));
+    if (selectedId === id) {
+      setSelectedId(null);
+      setSelectedTask(null);
+    }
+    api.dashboard().then(setDashboard).catch(() => {});
   };
 
   const planTask = async (task) => {
-    await api.generateGuide(task);
-    await refresh();
+    const updatedTask = await api.generateGuide(task);
+    setSelectedTask(updatedTask);
+    setTasks((current) => current.map((item) => item.id === task.id ? { ...item, plan: 'Guide ready' } : item));
   };
 
   const logTime = async (id, minutes, note) => {
-    await api.addSession(id, { minutes, note });
-    await refresh();
+    const updatedTask = await api.addSession(id, { minutes, note });
+    setSelectedTask(updatedTask);
+    setTasks((current) => current.map((item) => item.id === id ? { ...item, totalMinutes: updatedTask.totalMinutes } : item));
+    api.dashboard().then(setDashboard).catch(() => {});
   };
 
   const handleLogout = () => {
@@ -127,7 +165,9 @@ export default function AppShell() {
     tasks,
     dashboard,
     selectedId,
-    setSelectedId,
+    selectedTask,
+    detailLoading,
+    selectTask,
     loading,
     dataError,
     refresh,
@@ -136,7 +176,7 @@ export default function AppShell() {
     planTask,
     logTime,
     updateProfile,
-  }), [user, tasks, dashboard, selectedId, loading, dataError, refresh, updateProfile]);
+  }), [user, tasks, dashboard, selectedId, selectedTask, detailLoading, selectTask, loading, dataError, refresh, updateProfile]);
 
   return (
     <div className="app application-shell">
@@ -145,11 +185,11 @@ export default function AppShell() {
           <div className="logo" aria-hidden="true">⏱</div>
           <div>
             <div className="brand-name">TaskFlow</div>
-            <p>Your personal focus workspace</p>
+            <p>Use AI for guidance, not shortcuts.</p>
           </div>
         </div>
         <div className="topbar-right">
-          <div className="ollama-status" title="TaskFlow keeps documents private and uses starter guides during the first public beta">
+          <div className="ollama-status" title="TaskFlow keeps documents private and uses guided AI only when enabled">
             <span className={`dot ${ollama === null ? '' : ollama.ok ? 'on' : 'off'}`} />
             {ollama === null ? 'Loading Guided Mode…' : ollama.ok ? 'Guided AI beta' : 'Guided Mode ready'}
           </div>

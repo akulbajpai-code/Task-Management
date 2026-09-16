@@ -1,8 +1,24 @@
+import { useEffect, useMemo, useState } from 'react';
+
+const PAGE_SIZE = 6;
+
 function categoryClass(category) {
   return String(category || 'General').toLowerCase().replace(/[^a-z]+/g, '-');
 }
 
 export default function TaskList({ tasks, selectedId, onSelect, onDelete }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
+  const visibleTasks = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return tasks.slice(start, start + PAGE_SIZE);
+  }, [page, tasks]);
+
   if (!tasks.length) {
     return (
       <section className="card task-list-card">
@@ -22,6 +38,9 @@ export default function TaskList({ tasks, selectedId, onSelect, onDelete }) {
     );
   }
 
+  const firstVisible = (page - 1) * PAGE_SIZE + 1;
+  const lastVisible = Math.min(page * PAGE_SIZE, tasks.length);
+
   return (
     <section className="card task-list-card">
       <div className="section-heading">
@@ -32,8 +51,8 @@ export default function TaskList({ tasks, selectedId, onSelect, onDelete }) {
         <span className="task-count">{tasks.length}</span>
       </div>
 
-      <div className="task-list">
-        {tasks.map((t) => (
+      <div className="task-list" aria-live="polite">
+        {visibleTasks.map((t) => (
           <article
             key={t.id}
             className={`task ${t.id === selectedId ? 'selected' : ''}`}
@@ -41,7 +60,10 @@ export default function TaskList({ tasks, selectedId, onSelect, onDelete }) {
             tabIndex="0"
             role="button"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onSelect(t.id);
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(t.id);
+              }
             }}
           >
             <span className={`task-color ${categoryClass(t.category)}`} aria-hidden="true" />
@@ -63,12 +85,23 @@ export default function TaskList({ tasks, selectedId, onSelect, onDelete }) {
               <div className="task-meta">
                 <span className="category-tag">{t.category}</span>
                 <span className="time-tag">{t.totalMinutes || 0} min</span>
-                {t.plan && <span className="planned-tag">AI plan ready</span>}
+                {t.plan && <span className="planned-tag">Guide ready</span>}
               </div>
             </div>
           </article>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="task-pagination">
+          <span>Showing {firstVisible}–{lastVisible} of {tasks.length}</span>
+          <div>
+            <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>←</button>
+            <span>{page} / {totalPages}</span>
+            <button type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page === totalPages}>→</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

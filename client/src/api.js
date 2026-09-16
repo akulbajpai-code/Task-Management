@@ -47,7 +47,7 @@ function normalizeGuide(rawGuide) {
   return { ...rawGuide, guided_steps: steps };
 }
 
-function normalizeTask(rawTask) {
+function normalizeTask(rawTask, { summary = false } = {}) {
   const rawGuide = Array.isArray(rawTask.guided_plans)
     ? rawTask.guided_plans[0]
     : rawTask.guided_plans;
@@ -61,7 +61,9 @@ function normalizeTask(rawTask) {
     total_minutes: rawTask.total_minutes || 0,
     documents: rawDocuments,
     guide,
-    plan: guideToLegacyText(guide),
+    // The task queue only needs to know whether a guide exists. The full plan,
+    // document text, checkpoints, and chat history load only for the selected task.
+    plan: summary ? (rawGuide ? 'Guide ready' : null) : guideToLegacyText(guide),
   };
 }
 
@@ -110,7 +112,7 @@ function starterGuideFor(task) {
   ];
 }
 
-const TASK_SELECT = `
+const TASK_DETAIL_SELECT = `
   *,
   task_documents (*),
   guided_plans (
@@ -123,9 +125,24 @@ const TASK_SELECT = `
   )
 `;
 
+// Keep the queue fast. It deliberately excludes extracted document text,
+// guide instructions, checkpoints, and messages.
+const TASK_SUMMARY_SELECT = `
+  id,
+  user_id,
+  title,
+  description,
+  category,
+  due_date,
+  total_minutes,
+  created_at,
+  task_documents (id, file_name, mime_type, size_bytes, created_at),
+  guided_plans (id, status, current_step_number, created_at)
+`;
+
 async function fetchTask(id) {
   const client = requireSupabase();
-  const { data, error } = await client.from('tasks').select(TASK_SELECT).eq('id', id).single();
+  const { data, error } = await client.from('tasks').select(TASK_DETAIL_SELECT).eq('id', id).single();
   throwIfError(error);
   return normalizeTask(data);
 }
@@ -244,10 +261,10 @@ export const api = {
     const client = requireSupabase();
     const { data, error } = await client
       .from('tasks')
-      .select(TASK_SELECT)
+      .select(TASK_SUMMARY_SELECT)
       .order('created_at', { ascending: false });
     throwIfError(error);
-    return (data || []).map(normalizeTask);
+    return (data || []).map((task) => normalizeTask(task, { summary: true }));
   },
 
   async getTask(id) {

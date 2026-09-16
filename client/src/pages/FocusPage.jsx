@@ -134,10 +134,16 @@ export default function FocusPage() {
                 <span>Start here</span>
                 <p>{firstAction}</p>
               </div>
+            ) : activeTask.guide ? (
+              <div className="focus-next-action">
+                <span>Guided plan ready</span>
+                <p>Open Guided Mode to see the current step and continue where you left off.</p>
+                <Link to={`/guide/${activeTask.id}`}>Continue guided task →</Link>
+              </div>
             ) : (
               <div className="focus-next-action muted-action">
                 <span>Need a starting point?</span>
-                <p>Create an AI plan from the Tasks page before you begin.</p>
+                <p>Create a guided plan from the Tasks page before you begin.</p>
                 <Link to="/tasks">Open task workspace →</Link>
               </div>
             )}

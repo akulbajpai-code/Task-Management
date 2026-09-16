@@ -8,7 +8,9 @@ export default function TasksPage() {
   const {
     tasks,
     selectedId,
-    setSelectedId,
+    selectedTask,
+    detailLoading,
+    selectTask,
     createTask,
     deleteTask,
     planTask,
@@ -17,14 +19,13 @@ export default function TasksPage() {
   } = useOutletContext();
 
   if (loading) return <PageLoading label="Loading your tasks…" />;
-  const selected = tasks.find((task) => task.id === selectedId) || null;
 
   return (
     <div className="page tasks-page">
       <div className="page-heading">
         <p className="eyebrow">Your task space</p>
         <h1>Turn the big picture into the next move.</h1>
-        <p>Capture tasks, build a private AI breakdown, and log the time you give your work.</p>
+        <p>Capture tasks, build a guided plan, and log the time you give your work—without loading every task’s history at once.</p>
       </div>
 
       <div className="workspace tasks-workspace">
@@ -33,16 +34,23 @@ export default function TasksPage() {
           <TaskList
             tasks={tasks}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={selectTask}
             onDelete={deleteTask}
           />
         </aside>
-        <TaskDetail
-          task={selected}
-          onPlan={planTask}
-          onLogTime={logTime}
-          onDelete={deleteTask}
-        />
+        {detailLoading ? (
+          <section className="card detail-card detail-empty detail-loading-card">
+            <span className="loading-dot" aria-hidden="true" />
+            <p>Opening task details…</p>
+          </section>
+        ) : (
+          <TaskDetail
+            task={selectedTask}
+            onPlan={planTask}
+            onLogTime={logTime}
+            onDelete={deleteTask}
+          />
+        )}
       </div>
     </div>
   );
